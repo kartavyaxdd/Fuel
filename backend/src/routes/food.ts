@@ -8,16 +8,10 @@ import {
   copyDay,
   deleteLoggedFood,
   logFood,
-  seedDemoDay,
 } from '../domain/foodLog';
+import { DEMO_ANCHOR_DATE } from '../domain/sampleData';
 
 const router = Router();
-
-/** Today's date in the app's demo timeline. */
-const DEMO_TODAY = '2026-07-02';
-
-// Ensure the demo day has content the first time the module loads.
-seedDemoDay(DEMO_TODAY);
 
 function isMealSlot(value: unknown): value is MealSlot {
   return typeof value === 'string' && (MEAL_SLOTS as string[]).includes(value);
@@ -48,7 +42,7 @@ router.get('/food/search', async (req: Request, res: Response) => {
  */
 router.get('/food/day', (req: Request, res: Response) => {
   try {
-    const date = typeof req.query.date === 'string' ? req.query.date : DEMO_TODAY;
+    const date = typeof req.query.date === 'string' ? req.query.date : DEMO_ANCHOR_DATE;
     res.status(200).json(buildFoodDay(date));
   } catch (error) {
     console.error('Error building food day:', error);
@@ -89,7 +83,7 @@ router.post('/food/log', (req: Request, res: Response) => {
  */
 router.delete('/food/log/:id', (req: Request, res: Response) => {
   try {
-    const date = typeof req.query.date === 'string' ? req.query.date : DEMO_TODAY;
+    const date = typeof req.query.date === 'string' ? req.query.date : DEMO_ANCHOR_DATE;
     const removed = deleteLoggedFood(date, req.params.id);
     if (!removed) {
       res.status(404).json({ error: 'Entry not found' });
@@ -108,7 +102,7 @@ router.delete('/food/log/:id', (req: Request, res: Response) => {
  */
 router.delete('/food/day', (req: Request, res: Response) => {
   try {
-    const date = typeof req.query.date === 'string' ? req.query.date : DEMO_TODAY;
+    const date = typeof req.query.date === 'string' ? req.query.date : DEMO_ANCHOR_DATE;
     const count = clearDay(date);
     res.status(200).json({ cleared: count, date, message: `Cleared ${count} entries for ${date}` });
   } catch (error) {

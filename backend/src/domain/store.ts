@@ -42,14 +42,13 @@ export async function loadAll(): Promise<void> {
     console.error('[store] loadAll query failed:', error.message);
     return;
   }
-  if (!data || data.length === 0) return; // first boot — empty store
-  for (const row of data) {
-    const provider = providers.get(row.key);
-    if (!provider) continue;
+  const loaded = new Map((data ?? []).map(r => [r.key, r.value]));
+  for (const provider of providers.values()) {
+    const value = loaded.get(provider.name);
     try {
-      provider.import(row.value);
+      provider.import(value ?? {});
     } catch (err) {
-      console.error(`[store] failed to import "${row.key}":`, err);
+      console.error(`[store] failed to import "${provider.name}":`, err);
     }
   }
 }
