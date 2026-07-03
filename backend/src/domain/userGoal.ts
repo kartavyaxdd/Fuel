@@ -21,6 +21,13 @@ function isValidMode(value: unknown): value is GoalMode {
   return typeof value === 'string' && (VALID_MODES as string[]).includes(value);
 }
 
+/** Reset goal to default (fat-loss to 78kg). */
+export function resetGoal(): UserGoal {
+  GOAL = { ...DEFAULT_GOAL };
+  scheduleSave();
+  return getGoal();
+}
+
 /** Read the active goal. */
 export function getGoal(): UserGoal {
   return { ...GOAL };

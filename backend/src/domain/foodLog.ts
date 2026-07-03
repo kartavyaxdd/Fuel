@@ -88,6 +88,22 @@ export function logFood(
   return entry;
 }
 
+/** Clear all logged entries for a date. Returns number of entries removed. */
+export function clearDay(date: string): number {
+  const day = LOG.get(date);
+  if (!day) return 0;
+  const count = day.length;
+  LOG.delete(date);
+  scheduleSave();
+  return count;
+}
+
+/** Clear the entire food log. */
+export function clearAllFoodLog(): void {
+  LOG.clear();
+  scheduleSave();
+}
+
 /** Remove a logged entry by id from a day. Returns true if it existed. */
 export function deleteLoggedFood(date: string, entryId: string): boolean {
   const day = LOG.get(date);

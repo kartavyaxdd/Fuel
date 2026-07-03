@@ -9,6 +9,8 @@ import insightsRoutes from './routes/insights';
 import progressRoutes from './routes/progress';
 import goalRoutes from './routes/goal';
 import coachRoutes from './routes/coach';
+import resetRoutes from './routes/reset';
+import exportRoutes from './routes/export';
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +36,8 @@ app.use('/api', insightsRoutes);
 app.use('/api', progressRoutes);
 app.use('/api', goalRoutes);
 app.use('/api', coachRoutes);
+app.use('/api', resetRoutes);
+app.use('/api', exportRoutes);
 
 // Root endpoint — shows API is alive
 app.get('/', (req: Request, res: Response) => {
@@ -50,6 +54,8 @@ app.get('/', (req: Request, res: Response) => {
       progress: '/api/progress',
       goal: '/api/goal',
       coach: '/api/coach',
+      reset: '/api/reset',
+      export: '/api/export?format=json|csv',
     },
   });
 });

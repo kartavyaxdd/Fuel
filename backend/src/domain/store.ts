@@ -93,6 +93,15 @@ export function scheduleSave(): void {
   if (typeof timer.unref === 'function') timer.unref();
 }
 
+/** Delete the persisted snapshot so next boot uses fresh seed data. */
+export function resetStore(): void {
+  try {
+    if (fs.existsSync(DATA_FILE)) fs.unlinkSync(DATA_FILE);
+  } catch {
+    // best effort
+  }
+}
+
 /** Force an immediate synchronous flush (used on graceful shutdown). */
 export function flushNow(): void {
   if (!ENABLED) return;

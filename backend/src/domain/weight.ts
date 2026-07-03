@@ -46,6 +46,12 @@ export function normalizeRange(value: unknown): WeightRange {
   return isValidRange(n) ? n : 90;
 }
 
+/** Clear all weigh-in data. */
+export function clearAllWeights(): void {
+  WEIGHTS.clear();
+  scheduleSave();
+}
+
 /** Record (or overwrite) a weigh-in for a given day. */
 export function logWeight(req: LogWeightRequest): void {
   WEIGHTS.set(req.date, req.weight);

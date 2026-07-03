@@ -39,6 +39,10 @@
     {
       "name": "Coach",
       "description": "AI coach briefing and chat"
+    },
+    {
+      "name": "Data",
+      "description": "Data management (reset, export)"
     }
   ],
   "paths": {
@@ -158,6 +162,67 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FoodDay"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Food"
+        ],
+        "summary": "Clear all food entries for a date",
+        "description": "Removes every logged food entry for the given date. Returns count of cleared entries.",
+        "operationId": "clearFoodDay",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "default": "2026-07-02"
+            },
+            "description": "ISO date to clear."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Day cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "cleared",
+                    "date",
+                    "message"
+                  ],
+                  "properties": {
+                    "cleared": {
+                      "type": "integer",
+                      "description": "Number of entries removed."
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -797,6 +862,96 @@
           },
           "503": {
             "description": "Coach unavailable (GEMINI_API_KEY not set)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reset": {
+      "post": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "Reset all data to defaults",
+        "description": "Clears food log, weight history, and resets goal to default. Deletes persisted store file.",
+        "operationId": "resetAllData",
+        "responses": {
+          "200": {
+            "description": "All data reset",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/export": {
+      "get": {
+        "tags": [
+          "Data"
+        ],
+        "summary": "Export all data as JSON or CSV",
+        "description": "Downloads all user data as JSON or CSV file.",
+        "operationId": "exportData",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "default": "json"
+            },
+            "description": "Export format."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Data file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              },
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {

@@ -4,6 +4,7 @@ import { MEAL_SLOTS } from '@nutrition/types';
 import { searchFoodsLive } from '../domain/foodSearch';
 import {
   buildFoodDay,
+  clearDay,
   copyDay,
   deleteLoggedFood,
   logFood,
@@ -97,6 +98,21 @@ router.delete('/food/log/:id', (req: Request, res: Response) => {
     res.status(200).json(buildFoodDay(date));
   } catch (error) {
     console.error('Error deleting logged food:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * DELETE /api/food/day?date=YYYY-MM-DD
+ * Clear all logged entries for a date.
+ */
+router.delete('/food/day', (req: Request, res: Response) => {
+  try {
+    const date = typeof req.query.date === 'string' ? req.query.date : DEMO_TODAY;
+    const count = clearDay(date);
+    res.status(200).json({ cleared: count, date, message: `Cleared ${count} entries for ${date}` });
+  } catch (error) {
+    console.error('Error clearing day:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
