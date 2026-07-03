@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { CoachData } from '@nutrition/types';
 import CoachPage from '../page';
 
@@ -89,7 +89,9 @@ describe('CoachPage', () => {
     mockApiGet.mockResolvedValue(makeCoach({ mode: 'lean-bulk' }));
     fireEvent.click(screen.getByRole('button', { name: /Lean bulk/i }));
 
-    expect(mockApiGet).toHaveBeenCalledWith('/coach?mode=lean-bulk');
+    await waitFor(() =>
+      expect(mockApiGet).toHaveBeenCalledWith('/coach?mode=lean-bulk')
+    );
   });
 
   it('renders an error banner when the request fails', async () => {
