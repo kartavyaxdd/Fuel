@@ -17,6 +17,7 @@
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
+    "start": "cd backend && node dist/index.js",
     "lint": "cd frontend && npm run lint"
   },
   "devDependencies": {
