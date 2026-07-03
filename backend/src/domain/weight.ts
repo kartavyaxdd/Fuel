@@ -8,6 +8,7 @@ import type {
 import { WEIGHT_RANGES } from '@nutrition/types';
 import { computeWeightTrend, type DailyRecord } from './energyModel';
 import { generateSampleHistory } from './sampleData';
+import { registerStore, scheduleSave } from './store';
 
 /**
  * In-memory weigh-in store keyed by ISO date. Seeded from the sample history so
@@ -48,6 +49,7 @@ export function normalizeRange(value: unknown): WeightRange {
 /** Record (or overwrite) a weigh-in for a given day. */
 export function logWeight(req: LogWeightRequest): void {
   WEIGHTS.set(req.date, req.weight);
+  scheduleSave();
 }
 
 function computeStats(series: WeightPoint[], windowDays: number): WeightStats {
@@ -96,3 +98,16 @@ export function buildWeightData(range: WeightRange): WeightData {
     unit: 'kg',
   };
 }
+
+/** Persist the weigh-in store as a date→weight map. */
+registerStore(
+  'weight',
+  (): Record<string, number> => Object.fromEntries(WEIGHTS.entries()),
+  (data: unknown) => {
+    if (!data || typeof data !== 'object') return;
+    WEIGHTS.clear();
+    for (const [date, weight] of Object.entries(data as Record<string, number>)) {
+      if (typeof weight === 'number') WEIGHTS.set(date, weight);
+    }
+  },
+);

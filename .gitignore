@@ -6,3 +6,6 @@ node_modules/
 dist/
 .vscode/
 .idea/
+
+# Runtime persistence snapshot (JSON file store)
+.data/

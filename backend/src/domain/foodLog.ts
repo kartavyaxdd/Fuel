@@ -9,6 +9,7 @@ import type {
 import { MEAL_SLOTS } from '@nutrition/types';
 import { getFoodById } from './foodDb';
 import { buildDemoDashboard } from './dashboard';
+import { registerStore, scheduleSave } from './store';
 
 const SLOT_LABELS: Record<MealSlot, string> = {
   breakfast: 'Breakfast',
@@ -83,6 +84,7 @@ export function logFood(
   const day = LOG.get(date) ?? [];
   day.push(entry);
   LOG.set(date, day);
+  scheduleSave();
   return entry;
 }
 
@@ -93,6 +95,7 @@ export function deleteLoggedFood(date: string, entryId: string): boolean {
   const idx = day.findIndex((e) => e.id === entryId);
   if (idx === -1) return false;
   day.splice(idx, 1);
+  scheduleSave();
   return true;
 }
 
@@ -164,3 +167,28 @@ export function seedDemoDay(date: string): void {
   logFood(date, 'snack', 'db-whey', 1, ts(16, 0));
   logFood(date, 'snack', 'db-banana', 1, ts(16, 1));
 }
+
+interface FoodLogSnapshot {
+  idCounter: number;
+  days: Record<string, LoggedFood[]>;
+}
+
+/** Persist the log store: replaces in-memory state with the on-disk snapshot. */
+registerStore(
+  'foodLog',
+  (): FoodLogSnapshot => ({
+    idCounter,
+    days: Object.fromEntries(LOG.entries()),
+  }),
+  (data: unknown) => {
+    const snapshot = data as FoodLogSnapshot;
+    if (!snapshot || typeof snapshot !== 'object') return;
+    LOG.clear();
+    for (const [date, entries] of Object.entries(snapshot.days ?? {})) {
+      if (Array.isArray(entries)) LOG.set(date, entries);
+    }
+    if (typeof snapshot.idCounter === 'number' && snapshot.idCounter > idCounter) {
+      idCounter = snapshot.idCounter;
+    }
+  },
+);
