@@ -35,6 +35,25 @@ app.use('/api', progressRoutes);
 app.use('/api', goalRoutes);
 app.use('/api', coachRoutes);
 
+// Root endpoint — shows API is alive
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).json({
+    name: 'Fuel API',
+    version: '1.0.0',
+    status: 'running',
+    docs: '/api/openapi.json',
+    endpoints: {
+      dashboard: '/api/dashboard',
+      food: '/api/food/search?q=',
+      weight: '/api/weight',
+      insights: '/api/insights',
+      progress: '/api/progress',
+      goal: '/api/goal',
+      coach: '/api/coach',
+    },
+  });
+});
+
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
