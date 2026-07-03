@@ -1,0 +1,8 @@
+# nutrition-app
+node_modules/
+*.log
+.env
+.next/
+dist/
+.vscode/
+.idea/

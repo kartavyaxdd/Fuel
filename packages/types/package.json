@@ -1,0 +1,25 @@
+{
+  "name": "@nutrition/types",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  },
+  "keywords": [
+    "typescript",
+    "types",
+    "nutrition",
+    "fitness"
+  ],
+  "author": "",
+  "license": "MIT"
+}
