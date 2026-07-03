@@ -1,6 +1,7 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import dashboardRoutes from './routes/dashboard';
 import foodRoutes from './routes/food';
 import weightRoutes from './routes/weight';
@@ -17,7 +18,7 @@ const app: Express = express();
 // CORS configuration
 const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
 app.use(cors({
-  origin: frontendURL,
+  origin: [frontendURL, 'https://fuel-2j8v.onrender.com'].filter(Boolean),
   credentials: true
 }));
 
@@ -37,6 +38,11 @@ app.use('/api', coachRoutes);
 // Health check endpoint
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
+// Serve OpenAPI spec for ChatGPT / API clients
+app.get('/api/openapi.json', (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '..', 'openapi.json'));
 });
 
 // 404 handler

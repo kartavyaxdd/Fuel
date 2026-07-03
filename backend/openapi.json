@@ -11,6 +11,10 @@
   },
   "servers": [
     {
+      "url": "https://fuel-2j8v.onrender.com/api",
+      "description": "Production (Render)"
+    },
+    {
       "url": "http://localhost:3001/api",
       "description": "Local development"
     }
