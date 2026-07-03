@@ -98,6 +98,16 @@ export function clearDay(date: string): number {
   return count;
 }
 
+/** Sum of calories logged per date. */
+export function getDailyIntakes(): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const [date, entries] of LOG) {
+    const sum = entries.reduce((s, e) => s + e.calories, 0);
+    totals.set(date, sum);
+  }
+  return totals;
+}
+
 /** Clear the entire food log. */
 /** All dates that have at least one logged entry. */
 export function getAllLogDates(): string[] {

@@ -15,7 +15,6 @@ import {
   type DailyRecord,
 } from './energyModel';
 import { estimateEtaWeeks, recommendedCalorieTarget } from './goals';
-import { generateSampleHistory } from './sampleData';
 
 export interface BuildInsightsOptions {
   mode?: GoalMode;
@@ -343,13 +342,4 @@ export function buildInsights(
   return { ...base, highlights: buildHighlights(base) };
 }
 
-/** Convenience: build insights from generated demo history. */
-export function buildDemoInsights(): InsightsData {
-  return buildInsights(generateSampleHistory(), {
-    mode: 'fat-loss',
-    targetWeight: 78,
-  });
-}
-
-// Re-export for callers that want the constant without reaching into energyModel.
 export { KCAL_PER_KG };

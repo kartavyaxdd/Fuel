@@ -7,23 +7,13 @@ import type {
 } from '@nutrition/types';
 import { WEIGHT_RANGES } from '@nutrition/types';
 import { computeWeightTrend, type DailyRecord } from './energyModel';
-import { generateSampleHistory } from './sampleData';
 import { registerStore, scheduleSave } from './store';
 
 /**
- * In-memory weigh-in store keyed by ISO date. Seeded from the sample history so
- * the demo has a realistic 90-day curve; a real app swaps this for a database
- * while the domain API stays identical.
+ * In-memory weigh-in store keyed by ISO date. Starts empty — users log
+ * their first weigh-in via POST /api/weight.
  */
 const WEIGHTS: Map<string, number> = new Map();
-
-function seedFromSample(): void {
-  if (WEIGHTS.size > 0) return;
-  for (const record of generateSampleHistory()) {
-    if (record.weight != null) WEIGHTS.set(record.date, record.weight);
-  }
-}
-seedFromSample();
 
 function round(n: number, dp = 1): number {
   const f = 10 ** dp;
@@ -32,6 +22,13 @@ function round(n: number, dp = 1): number {
 
 /** All stored weigh-ins as DailyRecords, ascending by date. */
 function toRecords(): DailyRecord[] {
+  return [...WEIGHTS.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, weight]) => ({ date, intake: null, weight }));
+}
+
+/** All stored weigh-ins as DailyRecords, ascending by date (intake always null). */
+export function getWeightRecords(): DailyRecord[] {
   return [...WEIGHTS.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, weight]) => ({ date, intake: null, weight }));

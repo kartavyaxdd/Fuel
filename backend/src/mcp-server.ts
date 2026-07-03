@@ -39,7 +39,8 @@ import { searchFoodsLive } from './domain/foodSearch';
 import { getFoodById } from './domain/foodDb';
 import { getGoal, setGoal } from './domain/userGoal';
 import { buildCoach } from './domain/coach';
-import { generateSampleHistory, DEMO_ANCHOR_DATE } from './domain/sampleData';
+import { DEMO_ANCHOR_DATE } from './domain/sampleData';
+import { buildDailyRecords } from './domain/dailyRecords';
 import { computeWeightTrend } from './domain/energyModel';
 import { estimateEtaWeeks } from './domain/goals';
 import { logWeight as logWeightDomain } from './domain/weight';
@@ -197,7 +198,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'get_goal': {
         const goal = getGoal();
-        const history = generateSampleHistory();
+        const history = buildDailyRecords();
         const trendPoints = computeWeightTrend(history);
         const currentWeight = trendPoints.length > 0
           ? trendPoints[trendPoints.length - 1].trend
@@ -208,10 +209,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             type: 'text',
             text: JSON.stringify({
               ...goal,
-              currentWeight: parseFloat(currentWeight.toFixed(1)),
+              currentWeight: trendPoints.length > 0 ? parseFloat(currentWeight.toFixed(1)) : null,
               etaWeeks: eta != null ? Math.round(eta) : null,
-              progressKg: parseFloat((goal.startWeight - currentWeight).toFixed(1)),
-              remainingKg: parseFloat((currentWeight - goal.targetWeight).toFixed(1)),
+              progressKg: trendPoints.length > 0 ? parseFloat((goal.startWeight - currentWeight).toFixed(1)) : 0,
+              remainingKg: goal.targetWeight != null
+                ? parseFloat(Math.abs(currentWeight - goal.targetWeight).toFixed(1))
+                : null,
             }, null, 2),
           }],
         };
@@ -232,7 +235,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'get_coach_briefing': {
         const goal = getGoal();
-        const history = generateSampleHistory();
+        const history = buildDailyRecords();
         const briefing = buildCoach(history, {
           mode: goal.mode,
           targetWeight: goal.targetWeight,
@@ -368,7 +371,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'get_progress': {
         const goal = getGoal();
-        const history = generateSampleHistory();
+        const history = buildDailyRecords();
         const trendPoints = computeWeightTrend(history);
         const currentWeight = trendPoints.length > 0
           ? trendPoints[trendPoints.length - 1].trend

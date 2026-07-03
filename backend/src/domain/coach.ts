@@ -17,7 +17,6 @@ import {
   recommendedCalorieTarget,
   WEEKLY_RATE_BY_MODE,
 } from './goals';
-import { generateSampleHistory } from './sampleData';
 
 export interface BuildCoachOptions {
   mode?: GoalMode;
@@ -436,14 +435,6 @@ function buildTalkingPoints(
     `Can you plan your ${targets.protein} g protein into meals before the day starts?`,
   );
   return points.slice(0, 4);
-}
-
-/** Convenience: build coach output from generated demo history. */
-export function buildDemoCoach(): CoachData {
-  return buildCoach(generateSampleHistory(), {
-    mode: 'fat-loss',
-    targetWeight: 78,
-  });
 }
 
 export { KCAL_PER_KG };

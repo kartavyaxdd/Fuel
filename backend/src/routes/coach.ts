@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { GoalMode } from '@nutrition/types';
 import { buildCoach } from '../domain/coach';
-import { generateSampleHistory } from '../domain/sampleData';
+import { buildDailyRecords } from '../domain/dailyRecords';
 import { isCoachEnabled, chatWithCoach } from '../domain/geminiCoach';
 
 const router = Router();
@@ -30,7 +30,7 @@ router.get('/coach', (req, res) => {
     const targetWeight = normalizeTargetWeight(req.query.targetWeight);
     const currentTarget = normalizeTarget(req.query.currentTarget);
     res.json(
-      buildCoach(generateSampleHistory(), { mode, targetWeight, currentTarget }),
+      buildCoach(buildDailyRecords(), { mode, targetWeight, currentTarget }),
     );
   } catch {
     res.status(500).json({ error: 'Internal server error' });

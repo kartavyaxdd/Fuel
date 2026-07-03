@@ -6,7 +6,8 @@ import { logFood } from './foodLog';
 import { getGoal } from './userGoal';
 import { buildCoach } from './coach';
 import { computeWeightTrend, computeAdaptiveExpenditure } from './energyModel';
-import { generateSampleHistory, DEMO_ANCHOR_DATE } from './sampleData';
+import { buildDailyRecords } from './dailyRecords';
+import { DEMO_ANCHOR_DATE } from './sampleData';
 import { estimateEtaWeeks } from './goals';
 
 const MODEL_NAME = 'gemini-2.5-flash';
@@ -63,7 +64,7 @@ interface CoachContext {
 
 function buildCoachContext(): CoachContext {
   const goal = getGoal();
-  const history = generateSampleHistory();
+  const history = buildDailyRecords();
   const coachData = buildCoach(history, {
     mode: goal.mode,
     targetWeight: goal.targetWeight,

@@ -11,9 +11,10 @@ import {
   type DailyRecord,
 } from './energyModel';
 import { computeGoalProgress, recommendedCalorieTarget } from './goals';
-import { generateSampleHistory, DEMO_ANCHOR_DATE } from './sampleData';
 import { getGoal } from './userGoal';
 import { getDayMeals } from './foodLog';
+import { buildDailyRecords } from './dailyRecords';
+import { DEMO_ANCHOR_DATE } from './sampleData';
 
 /** Macro split (fraction of calories) targeted per gram type. */
 const PROTEIN_KCAL_PER_G = 4;
@@ -68,7 +69,7 @@ export function buildDashboard(
   // Trend delta: change in trend weight over the last 7 days (kg).
   const last = weightSeries[weightSeries.length - 1];
   const weekAgo = weightSeries[Math.max(0, weightSeries.length - 8)];
-  const trendDelta = round(last.trend - weekAgo.trend, 2);
+  const trendDelta = last && weekAgo ? round(last.trend - weekAgo.trend, 2) : 0;
 
   const calorieTarget = recommendedCalorieTarget(expenditureEstimate, mode);
 
@@ -85,18 +86,14 @@ export function buildDashboard(
   const fatTarget = (calorieTarget * 0.3) / FAT_KCAL_PER_G;
 
   const startWeight = firstDefinedTrend(weightSeries);
+  const currentWeight = last ? last.trend : targetWeight;
   const goal = computeGoalProgress(
-    {
-      mode,
-      startWeight,
-      currentWeight: last.trend,
-      targetWeight,
-    },
+    { mode, startWeight, currentWeight, targetWeight },
     weightSeries,
   );
 
   return {
-    date: history[history.length - 1]?.date ?? last.date,
+    date: last?.date ?? new Date().toISOString().slice(0, 10),
     calories: macroTarget(calorieTarget, consumedCals),
     macros: {
       protein: macroTarget(proteinTarget, consumedProtein),
@@ -115,14 +112,16 @@ export function buildDashboard(
   };
 }
 
-/** Convenience: build the dashboard from generated demo history. */
+/** Convenience: build the dashboard from the user's real data. */
 export function buildDemoDashboard(): DashboardData {
   const goal = getGoal();
-  return buildDashboard(generateSampleHistory(), {
+  return buildDashboard(buildDailyRecords(), {
     mode: goal.mode,
     targetWeight: goal.targetWeight,
   });
 }
+
+
 
 /**
  * Adherence = fraction of the last 7 logged days whose intake landed within

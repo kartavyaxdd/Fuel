@@ -47,6 +47,5 @@ describe('GET /api/dashboard', () => {
     expect(typeof body.weeklyAdherence).toBe('number');
     expect(Array.isArray(body.meals)).toBe(true);
     expect(Array.isArray(body.weightSeries)).toBe(true);
-    expect(body.weightSeries.length).toBeGreaterThan(0);
   });
 });

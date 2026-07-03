@@ -1,6 +1,19 @@
 import { normalizeRange, logWeight, buildWeightData } from '../weight';
 import { WEIGHT_RANGES, type WeightRange } from '@nutrition/types';
 
+// Seed some deterministic test data before each test suite
+beforeAll(() => {
+  const startDate = '2026-04-04';
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(`${startDate}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + i);
+    const date = d.toISOString().slice(0, 10);
+    // Simulate a gentle downward trend from 84 to 78 kg with noise
+    const weight = 84 - (i / 90) * 6 + (Math.random() - 0.5) * 0.6;
+    logWeight({ date, weight: parseFloat(weight.toFixed(1)) });
+  }
+});
+
 describe('normalizeRange', () => {
   it('passes through every valid range', () => {
     for (const range of WEIGHT_RANGES) {
@@ -33,8 +46,6 @@ describe('buildWeightData', () => {
   });
 
   it('warms the EMA on full history so shorter ranges still end at the same trend', () => {
-    // The trend is computed over the whole history then sliced, so the most
-    // recent trend value must be identical regardless of the window length.
     const short = buildWeightData(30);
     const long = buildWeightData(180);
     const shortLast = short.series[short.series.length - 1];
@@ -50,7 +61,6 @@ describe('buildWeightData', () => {
     expect(data.stats.highestTrend).toBe(Math.max(...trends));
     expect(data.stats.currentTrend).toBe(trends[trends.length - 1]);
     expect(data.stats.windowDays).toBe(90);
-    // entriesLogged counts only points with a real scale reading.
     const scaleCount = data.series.filter((p) => p.scale != null).length;
     expect(data.stats.entriesLogged).toBe(scaleCount);
   });
@@ -59,7 +69,6 @@ describe('buildWeightData', () => {
     const range: WeightRange = 30;
     const before = buildWeightData(range);
     const latestDate = before.date;
-    // Overwrite today's weigh-in with a distinctive value and confirm it lands.
     logWeight({ date: latestDate, weight: 77.7 });
     const after = buildWeightData(range);
     const lastPoint = after.series[after.series.length - 1];

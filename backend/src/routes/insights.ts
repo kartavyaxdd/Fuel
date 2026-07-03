@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { GoalMode } from '@nutrition/types';
 import { buildInsights } from '../domain/insights';
-import { generateSampleHistory } from '../domain/sampleData';
+import { buildDailyRecords } from '../domain/dailyRecords';
 
 const router = Router();
 
@@ -22,7 +22,7 @@ router.get('/insights', (req, res) => {
   try {
     const mode = normalizeMode(req.query.mode);
     const targetWeight = normalizeTargetWeight(req.query.targetWeight);
-    res.json(buildInsights(generateSampleHistory(), { mode, targetWeight }));
+    res.json(buildInsights(buildDailyRecords(), { mode, targetWeight }));
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
