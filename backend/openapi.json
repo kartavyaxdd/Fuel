@@ -1,0 +1,1211 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nutrition Tracker API",
+    "version": "1.0.0",
+    "description": "Full-featured nutrition and body-composition tracking API with deterministic AI coach. Companion to the visionOS-style frontend.\n\n**Base URLs (local dev):**\n- Frontend: http://localhost:3000\n- Backend: http://localhost:3001\n\nThe demo runs on a hardcoded anchor date (2026-07-02) — all endpoints use this as 'today' unless overridden.\n\nSupports ChatGPT / custom GPT plugins, Claude Desktop via MCP, or any OpenAPI-compatible client."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3001/api",
+      "description": "Local development"
+    }
+  ],
+  "tags": [
+    { "name": "Dashboard", "description": "Daily nutrition overview" },
+    { "name": "Food", "description": "Food search, logging, and day view" },
+    { "name": "Weight", "description": "Weight tracking and trend analysis" },
+    { "name": "Insights", "description": "Weekly summaries, adherence, projections" },
+    { "name": "Progress", "description": "Body measurements, lifts, cardio, streaks" },
+    { "name": "Goal", "description": "Goal configuration" },
+    { "name": "Coach", "description": "AI coach briefing and chat" }
+  ],
+  "paths": {
+    "/dashboard": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Get today's dashboard",
+        "description": "Returns daily energy/macro budget, logged meals, weight trend series, adaptive expenditure model, adherence, and goal progress.",
+        "operationId": "getDashboard",
+        "responses": {
+          "200": {
+            "description": "Dashboard data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DashboardData" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/food/search": {
+      "get": {
+        "tags": ["Food"],
+        "summary": "Search foods",
+        "description": "Ranked food search over the seed DB + OpenFoodFacts + USDA. Remote APIs fail soft. Returns up to `limit` matching foods.",
+        "operationId": "searchFoods",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "" },
+            "description": "Free-text query. Empty returns seed DB foods only."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 50 },
+            "description": "Max results."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FoodSearchResult" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/food/day": {
+      "get": {
+        "tags": ["Food"],
+        "summary": "Get food day view",
+        "description": "Full day view with macro targets, consumed totals, remaining budgets, and meal groups with logged entries.",
+        "operationId": "getFoodDay",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date", "default": "2026-07-02" },
+            "description": "ISO date (YYYY-MM-DD). Defaults to demo anchor date."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Food day data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FoodDay" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/food/log": {
+      "post": {
+        "tags": ["Food"],
+        "summary": "Log a food",
+        "description": "Log a food item against a day and meal slot. Returns the updated FoodDay for that date.",
+        "operationId": "logFood",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LogFoodRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Food logged — returns updated day",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FoodDay" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body or foodId not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/food/log/{id}": {
+      "delete": {
+        "tags": ["Food"],
+        "summary": "Delete a logged food entry",
+        "description": "Remove a logged food entry by its log ID. Returns the updated FoodDay for the date.",
+        "operationId": "deleteLoggedFood",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "LoggedFood ID (e.g. 'log-1')."
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date", "default": "2026-07-02" },
+            "description": "ISO date of the day the entry belongs to."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entry deleted — returns updated day",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FoodDay" }
+              }
+            }
+          },
+          "404": {
+            "description": "Entry ID not found for that date",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/food/copy": {
+      "post": {
+        "tags": ["Food"],
+        "summary": "Copy food entries between dates",
+        "description": "Copy all food entries from one date to another ('copy yesterday' flow). Returns the updated FoodDay for the destination date.",
+        "operationId": "copyFoodDay",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["from", "to"],
+                "properties": {
+                  "from": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Source date (YYYY-MM-DD)."
+                  },
+                  "to": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Destination date (YYYY-MM-DD)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Copied successfully — returns updated destination day",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/FoodDay" }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing from or to",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/weight": {
+      "get": {
+        "tags": ["Weight"],
+        "summary": "Get weight trend data",
+        "description": "Weight tracking view with trend series, smoothed stats, and headline metrics for a selected window.",
+        "operationId": "getWeight",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "enum": [30, 60, 90, 180],
+              "default": 90
+            },
+            "description": "Lookback window in days."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Weight data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WeightData" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Weight"],
+        "summary": "Log a weigh-in",
+        "description": "Record or overwrite a scale weight for a given date. Returns updated WeightData.",
+        "operationId": "logWeight",
+        "parameters": [
+          {
+            "name": "range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "enum": [30, 60, 90, 180],
+              "default": 90
+            },
+            "description": "Lookback window for the response."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["date", "weight"],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "ISO date (YYYY-MM-DD)."
+                  },
+                  "weight": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "maximum": 500,
+                    "description": "Scale weight in kg."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Weigh-in recorded — returns updated weight data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/WeightData" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date or weight out of range",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/insights": {
+      "get": {
+        "tags": ["Insights"],
+        "summary": "Get aggregated insights",
+        "description": "Weekly summaries, plateau detection, adherence stats, forward projection to goal, and human-readable insight cards.",
+        "operationId": "getInsights",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/GoalMode"
+            },
+            "description": "Goal mode."
+          },
+          {
+            "name": "targetWeight",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 78,
+              "minimum": 1,
+              "maximum": 500
+            },
+            "description": "Target weight in kg."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Insights data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/InsightsData" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/progress": {
+      "get": {
+        "tags": ["Progress"],
+        "summary": "Get progress data",
+        "description": "Body measurements, lift history with PRs, cardio entries, step trend, and streak stats. All generated from deterministic sample data.",
+        "operationId": "getProgress",
+        "responses": {
+          "200": {
+            "description": "Progress data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProgressData" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/goal": {
+      "get": {
+        "tags": ["Goal"],
+        "summary": "Get current goal",
+        "description": "Returns the active user goal configuration (mode, target weight, start weight, start date).",
+        "operationId": "getGoal",
+        "responses": {
+          "200": {
+            "description": "Goal configuration",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserGoal" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Goal"],
+        "summary": "Set or update goal",
+        "description": "Overwrite the active goal. Missing optional fields fall back to the existing values.",
+        "operationId": "setGoal",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["mode", "targetWeight"],
+                "properties": {
+                  "mode": {
+                    "$ref": "#/components/schemas/GoalMode"
+                  },
+                  "targetWeight": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "description": "Target body weight in kg."
+                  },
+                  "startWeight": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "description": "Starting body weight in kg (optional, falls back to existing)."
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "ISO start date (optional, falls back to existing)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Goal updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserGoal" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid mode or targetWeight",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/coach": {
+      "get": {
+        "tags": ["Coach"],
+        "summary": "Get coach briefing",
+        "description": "Deterministic AI coach briefing with prioritized recommendations, check-in summary, macro targets, and talking points — all grounded in the user's training data.",
+        "operationId": "getCoachBriefing",
+        "parameters": [
+          {
+            "name": "mode",
+            "in": "query",
+            "required": false,
+            "schema": { "$ref": "#/components/schemas/GoalMode" },
+            "description": "Goal mode."
+          },
+          {
+            "name": "targetWeight",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "number", "default": 78, "minimum": 1, "maximum": 500 },
+            "description": "Target weight in kg."
+          },
+          {
+            "name": "currentTarget",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "number", "minimum": 1, "maximum": 20000 },
+            "description": "Current daily calorie target. Defaults to engine recommendation."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coach briefing data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/CoachData" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/coach/chat": {
+      "post": {
+        "tags": ["Coach"],
+        "summary": "Chat with AI coach (SSE stream)",
+        "description": "Server-Sent Events streaming chat with the Gemini-powered AI coach. The coach can autonomously search, find, and log foods using the `log_food` tool. Requires GEMINI_API_KEY environment variable.\n\nEvents are newline-delimited JSON (`data: {...}\\n\\n`). Read the stream until `{\"type\":\"done\"}` is received or the connection closes.\n\n**Event types (in order):**\n- `thinking`: Coach is processing\n- `searching`: Searching food database\n- `found`: Food match found with macros\n- `logging`: About to log a food\n- `logged`: Food logged successfully\n- `reply`: Coach's text response\n- `done`: Stream complete\n- `error`: Something went wrong",
+        "operationId": "chatWithCoach",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "User's message to the coach."
+                  },
+                  "sessionHistory": {
+                    "type": "array",
+                    "items": { "$ref": "#/components/schemas/ChatMessage" },
+                    "description": "Prior conversation context for multi-turn chat."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SSE event stream. Each line is `data: {...}\\n\\n`. See schema for `CoachChatEvent`.",
+            "content": {
+              "text/event-stream": {
+                "schema": { "$ref": "#/components/schemas/CoachChatEvent" }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or empty message",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "Coach unavailable (GEMINI_API_KEY not set)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string", "description": "Error message." }
+        }
+      },
+      "GoalMode": {
+        "type": "string",
+        "enum": ["fat-loss", "maintenance", "lean-bulk", "recomp"],
+        "description": "Nutrition goal mode."
+      },
+      "MealSlot": {
+        "type": "string",
+        "enum": ["breakfast", "lunch", "dinner", "snack"],
+        "description": "Meal slot for grouping food entries."
+      },
+      "FoodSource": {
+        "type": "string",
+        "enum": ["database", "custom", "recipe"],
+        "description": "Where a food definition originates."
+      },
+      "Macros": {
+        "type": "object",
+        "required": ["calories", "protein", "carbs", "fat"],
+        "properties": {
+          "calories": { "type": "number", "description": "Energy in kcal." },
+          "protein": { "type": "number", "description": "Protein in grams." },
+          "carbs": { "type": "number", "description": "Carbohydrates in grams." },
+          "fat": { "type": "number", "description": "Fat in grams." }
+        }
+      },
+      "FoodItem": {
+        "type": "object",
+        "required": ["id", "name", "source", "servingSize", "servingUnit", "calories", "protein", "carbs", "fat"],
+        "properties": {
+          "id": { "type": "string", "description": "Unique food identifier (e.g. 'off-123', 'db-chicken-breast')." },
+          "name": { "type": "string", "description": "Food display name." },
+          "brand": { "type": "string", "description": "Optional brand or restaurant name." },
+          "source": { "$ref": "#/components/schemas/FoodSource" },
+          "servingSize": { "type": "number", "description": "Numeric size of one serving (e.g. 100 for 100g)." },
+          "servingUnit": { "type": "string", "description": "Unit label (e.g. 'g', 'cup', 'scoop', 'slice')." },
+          "calories": { "type": "number", "description": "Kcal per serving." },
+          "protein": { "type": "number", "description": "Protein in g per serving." },
+          "carbs": { "type": "number", "description": "Carbs in g per serving." },
+          "fat": { "type": "number", "description": "Fat in g per serving." },
+          "barcode": { "type": "string", "description": "Optional barcode for scan-to-log." },
+          "favorite": { "type": "boolean", "description": "Whether user has starred this item." }
+        }
+      },
+      "FoodSearchResult": {
+        "type": "object",
+        "required": ["query", "items"],
+        "properties": {
+          "query": { "type": "string" },
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/FoodItem" }
+          }
+        }
+      },
+      "LoggedFood": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Macros" },
+          {
+            "type": "object",
+            "required": ["id", "date", "slot", "foodId", "name", "quantity", "servingUnit", "loggedAt"],
+            "properties": {
+              "id": { "type": "string", "description": "Unique log entry ID (e.g. 'log-1')." },
+              "date": { "type": "string", "format": "date", "description": "Date logged." },
+              "slot": { "$ref": "#/components/schemas/MealSlot" },
+              "foodId": { "type": "string", "description": "Reference to the FoodItem." },
+              "name": { "type": "string" },
+              "brand": { "type": "string" },
+              "quantity": { "type": "number", "description": "Number of servings." },
+              "servingUnit": { "type": "string" },
+              "loggedAt": { "type": "string", "format": "date-time", "description": "ISO timestamp of when it was logged." }
+            }
+          }
+        ]
+      },
+      "MealGroup": {
+        "type": "object",
+        "required": ["slot", "label", "entries", "totals"],
+        "properties": {
+          "slot": { "$ref": "#/components/schemas/MealSlot" },
+          "label": { "type": "string", "description": "Human-readable label (e.g. 'Breakfast', 'Lunch')." },
+          "entries": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/LoggedFood" }
+          },
+          "totals": { "$ref": "#/components/schemas/Macros", "description": "Rolled-up macros for this meal slot." }
+        }
+      },
+      "FoodDay": {
+        "type": "object",
+        "required": ["date", "target", "consumed", "remaining", "groups"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "target": { "$ref": "#/components/schemas/Macros", "description": "Daily macro targets." },
+          "consumed": { "$ref": "#/components/schemas/Macros", "description": "Sum of all logged entries." },
+          "remaining": { "$ref": "#/components/schemas/Macros", "description": "Target minus consumed." },
+          "groups": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/MealGroup" },
+            "description": "Four meal slot groups (breakfast, lunch, dinner, snack)."
+          }
+        }
+      },
+      "LogFoodRequest": {
+        "type": "object",
+        "required": ["date", "slot", "foodId", "quantity"],
+        "properties": {
+          "date": { "type": "string", "format": "date", "description": "ISO date to log against." },
+          "slot": { "$ref": "#/components/schemas/MealSlot" },
+          "foodId": { "type": "string", "description": "Must exist in the food DB or remote cache." },
+          "quantity": { "type": "number", "exclusiveMinimum": 0, "description": "Number of servings." }
+        }
+      },
+      "MacroTarget": {
+        "type": "object",
+        "required": ["target", "consumed", "remaining"],
+        "properties": {
+          "target": { "type": "integer", "description": "Budgeted amount." },
+          "consumed": { "type": "integer", "description": "Amount logged so far." },
+          "remaining": { "type": "integer", "description": "Amount still available." }
+        }
+      },
+      "DashboardMacros": {
+        "type": "object",
+        "required": ["protein", "carbs", "fat"],
+        "properties": {
+          "protein": { "$ref": "#/components/schemas/MacroTarget" },
+          "carbs": { "$ref": "#/components/schemas/MacroTarget" },
+          "fat": { "$ref": "#/components/schemas/MacroTarget" }
+        }
+      },
+      "Meal": {
+        "type": "object",
+        "required": ["id", "name", "calories", "protein", "carbs", "fat"],
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "calories": { "type": "integer" },
+          "protein": { "type": "integer" },
+          "carbs": { "type": "integer" },
+          "fat": { "type": "integer" },
+          "time": { "type": "string", "description": "Optional time label." }
+        }
+      },
+      "WeightPoint": {
+        "type": "object",
+        "required": ["date", "scale", "trend"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "scale": { "type": "number", "nullable": true, "description": "Raw scale weight (null if no weigh-in that day)." },
+          "trend": { "type": "number", "description": "Smoothed trend weight." }
+        }
+      },
+      "EnergyModel": {
+        "type": "object",
+        "required": ["expenditureEstimate", "confidence", "trendDelta"],
+        "properties": {
+          "expenditureEstimate": { "type": "number", "description": "Estimated TDEE in kcal." },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Model confidence (0–1)." },
+          "trendDelta": { "type": "number", "description": "Expenditure change vs 2 weeks ago." }
+        }
+      },
+      "GoalProgress": {
+        "type": "object",
+        "required": ["mode", "targetWeightDelta", "progress", "etaWeeks"],
+        "properties": {
+          "mode": { "$ref": "#/components/schemas/GoalMode" },
+          "targetWeightDelta": { "type": "number", "description": "Distance from target (kg, signed)." },
+          "progress": { "type": "number", "description": "Fraction of goal achieved (0–1+)." },
+          "etaWeeks": { "type": "number", "nullable": true, "description": "Estimated weeks to goal (null if diverging)." }
+        }
+      },
+      "DashboardData": {
+        "type": "object",
+        "required": ["date", "calories", "macros", "meals", "weightSeries", "energy", "weeklyAdherence", "goal"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "calories": { "$ref": "#/components/schemas/MacroTarget", "description": "Calorie budget." },
+          "macros": { "$ref": "#/components/schemas/DashboardMacros" },
+          "meals": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Meal" },
+            "description": "Today's logged meals."
+          },
+          "weightSeries": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WeightPoint" },
+            "description": "Trailing weight trend (oldest to newest)."
+          },
+          "energy": { "$ref": "#/components/schemas/EnergyModel" },
+          "weeklyAdherence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Fraction of last 7 days on target." },
+          "goal": { "$ref": "#/components/schemas/GoalProgress" },
+          "notes": { "type": "string", "description": "Optional free-text note." }
+        }
+      },
+      "WeightStats": {
+        "type": "object",
+        "required": ["currentTrend", "latestScale", "weeklyRate", "totalChange", "lowestTrend", "highestTrend", "entriesLogged", "windowDays"],
+        "properties": {
+          "currentTrend": { "type": "number", "description": "Latest smoothed trend weight (kg)." },
+          "latestScale": { "type": "number", "nullable": true, "description": "Most recent raw scale weight (kg)." },
+          "weeklyRate": { "type": "number", "description": "Trend change over last 7 days (kg, signed)." },
+          "totalChange": { "type": "number", "description": "Trend change across full window (kg, signed)." },
+          "lowestTrend": { "type": "number", "description": "Lowest trend weight in window (kg)." },
+          "highestTrend": { "type": "number", "description": "Highest trend weight in window (kg)." },
+          "entriesLogged": { "type": "integer", "description": "Days with a raw weigh-in in window." },
+          "windowDays": { "type": "integer", "description": "Total days in the window." }
+        }
+      },
+      "WeightData": {
+        "type": "object",
+        "required": ["date", "range", "series", "stats", "unit"],
+        "properties": {
+          "date": { "type": "string", "format": "date", "description": "Date of the newest data point." },
+          "range": { "type": "integer", "enum": [30, 60, 90, 180], "description": "Lookback window." },
+          "series": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WeightPoint" }
+          },
+          "stats": { "$ref": "#/components/schemas/WeightStats" },
+          "unit": { "type": "string", "enum": ["kg", "lb"], "description": "Weight unit." }
+        }
+      },
+      "WeekSummary": {
+        "type": "object",
+        "required": ["weekStart", "weekEnd", "label", "avgIntake", "avgTrendWeight", "weeklyRate", "adherence", "daysLogged"],
+        "properties": {
+          "weekStart": { "type": "string", "format": "date", "description": "Monday of the week." },
+          "weekEnd": { "type": "string", "format": "date", "description": "Sunday of the week." },
+          "label": { "type": "string", "description": "Human label (e.g. 'Jul 1 – Jul 7')." },
+          "avgIntake": { "type": "number", "nullable": true, "description": "Mean intake (kcal) across days with logs." },
+          "avgTrendWeight": { "type": "number", "description": "Mean trend weight (kg)." },
+          "weeklyRate": { "type": "number", "nullable": true, "description": "Trend change from previous week (kg)." },
+          "adherence": { "type": "number", "description": "Fraction of days logged that hit target." },
+          "daysLogged": { "type": "integer" }
+        }
+      },
+      "PlateauStatus": {
+        "type": "object",
+        "required": ["detected", "weeks", "message"],
+        "properties": {
+          "detected": { "type": "boolean" },
+          "weeks": { "type": "integer", "description": "Consecutive flat weeks." },
+          "message": { "type": "string" }
+        }
+      },
+      "AdherenceSummary": {
+        "type": "object",
+        "required": ["overall", "loggingRate", "onTargetDays", "totalLoggedDays", "totalDays"],
+        "properties": {
+          "overall": { "type": "number", "description": "Fraction of logged days within ±15% of target." },
+          "loggingRate": { "type": "number", "description": "Fraction of all days with any intake logged." },
+          "onTargetDays": { "type": "integer" },
+          "totalLoggedDays": { "type": "integer" },
+          "totalDays": { "type": "integer" }
+        }
+      },
+      "Projection": {
+        "type": "object",
+        "required": ["targetWeight", "currentTrend", "weeklyRate"],
+        "properties": {
+          "targetWeight": { "type": "number" },
+          "currentTrend": { "type": "number" },
+          "weeklyRate": { "type": "number", "description": "Recent slope in kg/week." },
+          "etaWeeks": { "type": "number", "nullable": true, "description": "Weeks to target (null if diverging)." },
+          "projectedDate": { "type": "string", "format": "date", "nullable": true, "description": "Estimated arrival date." }
+        }
+      },
+      "Insight": {
+        "type": "object",
+        "required": ["id", "tone", "title", "detail"],
+        "properties": {
+          "id": { "type": "string" },
+          "tone": { "type": "string", "enum": ["positive", "neutral", "warning"] },
+          "title": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      },
+      "InsightsData": {
+        "type": "object",
+        "required": ["generatedAt", "mode", "calorieTarget", "weeks", "plateau", "adherence", "expenditure", "highlights"],
+        "properties": {
+          "generatedAt": { "type": "string", "format": "date-time" },
+          "mode": { "$ref": "#/components/schemas/GoalMode" },
+          "calorieTarget": { "type": "number", "description": "Recommended daily kcal." },
+          "weeks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/WeekSummary" },
+            "description": "Calendar-week summaries oldest to newest."
+          },
+          "plateau": { "$ref": "#/components/schemas/PlateauStatus" },
+          "adherence": { "$ref": "#/components/schemas/AdherenceSummary" },
+          "expenditure": {
+            "type": "object",
+            "required": ["estimate", "confidence", "trendDelta"],
+            "properties": {
+              "estimate": { "type": "number", "description": "Estimated TDEE in kcal." },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+              "trendDelta": { "type": "number", "description": "Change vs 2 weeks ago." }
+            }
+          },
+          "projection": { "$ref": "#/components/schemas/Projection" },
+          "highlights": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Insight" }
+          }
+        }
+      },
+      "Measurement": {
+        "type": "object",
+        "required": ["date"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "waist": { "type": "number", "nullable": true, "description": "cm" },
+          "hips": { "type": "number", "nullable": true, "description": "cm" },
+          "chest": { "type": "number", "nullable": true, "description": "cm" },
+          "armLeft": { "type": "number", "nullable": true, "description": "cm" },
+          "armRight": { "type": "number", "nullable": true, "description": "cm" },
+          "thigh": { "type": "number", "nullable": true, "description": "cm" },
+          "bodyFat": { "type": "number", "nullable": true, "description": "Body fat percentage." }
+        }
+      },
+      "LiftEntry": {
+        "type": "object",
+        "required": ["date", "exercise", "weightKg", "reps", "oneRepMax"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "exercise": { "type": "string" },
+          "weightKg": { "type": "number" },
+          "reps": { "type": "integer" },
+          "oneRepMax": { "type": "number", "description": "Epley formula estimate." }
+        }
+      },
+      "LiftPR": {
+        "type": "object",
+        "required": ["exercise", "weightKg", "reps", "oneRepMax", "date"],
+        "properties": {
+          "exercise": { "type": "string" },
+          "weightKg": { "type": "number" },
+          "reps": { "type": "integer" },
+          "oneRepMax": { "type": "number" },
+          "date": { "type": "string", "format": "date" }
+        }
+      },
+      "CardioEntry": {
+        "type": "object",
+        "required": ["date"],
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "steps": { "type": "number", "nullable": true },
+          "durationMin": { "type": "number", "nullable": true },
+          "kcalBurned": { "type": "number", "nullable": true },
+          "type": { "type": "string", "enum": ["run", "walk", "cycle", "swim", "other"] }
+        }
+      },
+      "StreakStats": {
+        "type": "object",
+        "required": ["currentStreak", "longestStreak", "totalActiveDays"],
+        "properties": {
+          "currentStreak": { "type": "integer", "description": "Consecutive days with any log." },
+          "longestStreak": { "type": "integer" },
+          "streakStart": { "type": "string", "format": "date", "nullable": true },
+          "totalActiveDays": { "type": "integer" }
+        }
+      },
+      "ProgressData": {
+        "type": "object",
+        "required": ["generatedAt", "latestMeasurement", "measurements", "prs", "recentLifts", "recentCardio", "stepTrend", "streaks"],
+        "properties": {
+          "generatedAt": { "type": "string", "format": "date-time" },
+          "latestMeasurement": { "$ref": "#/components/schemas/Measurement" },
+          "measurements": { "type": "array", "items": { "$ref": "#/components/schemas/Measurement" } },
+          "prs": { "type": "array", "items": { "$ref": "#/components/schemas/LiftPR" } },
+          "recentLifts": { "type": "array", "items": { "$ref": "#/components/schemas/LiftEntry" } },
+          "recentCardio": { "type": "array", "items": { "$ref": "#/components/schemas/CardioEntry" } },
+          "stepTrend": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["date", "steps"],
+              "properties": {
+                "date": { "type": "string", "format": "date" },
+                "steps": { "type": "integer" }
+              }
+            }
+          },
+          "streaks": { "$ref": "#/components/schemas/StreakStats" }
+        }
+      },
+      "UserGoal": {
+        "type": "object",
+        "required": ["mode", "targetWeight", "startWeight", "startDate"],
+        "properties": {
+          "mode": { "$ref": "#/components/schemas/GoalMode" },
+          "targetWeight": { "type": "number", "description": "Goal body weight in kg." },
+          "startWeight": { "type": "number", "description": "Starting body weight in kg." },
+          "startDate": { "type": "string", "format": "date", "description": "Goal start date." }
+        }
+      },
+      "CoachCheckIn": {
+        "type": "object",
+        "required": ["periodLabel", "avgIntake", "avgExpenditure", "energyBalance", "weightTrendDelta", "adherence", "verdict"],
+        "properties": {
+          "periodLabel": { "type": "string", "description": "e.g. 'Jun 18 – Jul 2'." },
+          "avgIntake": { "type": "number", "nullable": true, "description": "Mean logged intake (kcal)." },
+          "avgExpenditure": { "type": "number", "description": "Mean expenditure (kcal)." },
+          "energyBalance": { "type": "number", "nullable": true, "description": "Intake minus expenditure (kcal)." },
+          "weightTrendDelta": { "type": "number", "description": "Trend change across window (kg, signed)." },
+          "adherence": { "type": "number", "minimum": 0, "maximum": 1, "description": "Fraction of days on target." },
+          "verdict": { "type": "string", "description": "Narrative assessment." }
+        }
+      },
+      "CoachTargets": {
+        "type": "object",
+        "required": ["current", "recommended", "delta", "protein", "carbs", "fat", "rationale"],
+        "properties": {
+          "current": { "type": "number", "description": "Current presumed target (kcal)." },
+          "recommended": { "type": "number", "description": "Engine recommendation (kcal)." },
+          "delta": { "type": "number", "description": "recommended - current (signed kcal)." },
+          "protein": { "type": "number", "description": "Recommended protein (g)." },
+          "carbs": { "type": "number", "description": "Recommended carbs (g)." },
+          "fat": { "type": "number", "description": "Recommended fat (g)." },
+          "rationale": { "type": "string" }
+        }
+      },
+      "CoachRecommendation": {
+        "type": "object",
+        "required": ["id", "tone", "category", "title", "rationale", "action", "priority"],
+        "properties": {
+          "id": { "type": "string" },
+          "tone": { "type": "string", "enum": ["positive", "neutral", "warning", "action"] },
+          "category": { "type": "string", "enum": ["calories", "macros", "activity", "adherence", "recovery"] },
+          "title": { "type": "string" },
+          "rationale": { "type": "string" },
+          "action": { "type": "string" },
+          "delta": {
+            "type": "object",
+            "required": ["label", "value", "unit"],
+            "properties": {
+              "label": { "type": "string" },
+              "value": { "type": "number" },
+              "unit": { "type": "string" }
+            }
+          },
+          "priority": { "type": "integer", "description": "1 = highest priority." }
+        }
+      },
+      "CoachData": {
+        "type": "object",
+        "required": ["generatedAt", "mode", "headline", "summary", "focus", "confidence", "checkIn", "targets", "recommendations", "talkingPoints"],
+        "properties": {
+          "generatedAt": { "type": "string", "format": "date-time" },
+          "mode": { "$ref": "#/components/schemas/GoalMode" },
+          "headline": { "type": "string", "description": "One-line greeting." },
+          "summary": { "type": "string", "description": "2–3 sentence assessment." },
+          "focus": { "type": "string", "description": "Single biggest lever." },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "checkIn": { "$ref": "#/components/schemas/CoachCheckIn" },
+          "targets": { "$ref": "#/components/schemas/CoachTargets" },
+          "recommendations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CoachRecommendation" },
+            "description": "Sorted by priority."
+          },
+          "talkingPoints": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Reflective prompts (max 4)."
+          }
+        }
+      },
+      "ChatMessage": {
+        "type": "object",
+        "required": ["role", "text"],
+        "properties": {
+          "role": { "type": "string", "enum": ["user", "model"], "description": "Who sent the message." },
+          "text": { "type": "string", "description": "Message content." }
+        }
+      },
+      "CoachChatEvent": {
+        "type": "object",
+        "description": "A single SSE event (data: {...}\\n\\n). The discriminator is the `type` field.",
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type"],
+            "properties": { "type": { "type": "string", "enum": ["thinking"] } }
+          },
+          {
+            "type": "object",
+            "required": ["type", "query"],
+            "properties": {
+              "type": { "type": "string", "enum": ["searching"] },
+              "query": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "name", "calories", "protein", "carbs", "fat"],
+            "properties": {
+              "type": { "type": "string", "enum": ["found"] },
+              "name": { "type": "string" },
+              "calories": { "type": "number" },
+              "protein": { "type": "number" },
+              "carbs": { "type": "number" },
+              "fat": { "type": "number" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "name", "slot", "quantity"],
+            "properties": {
+              "type": { "type": "string", "enum": ["logging"] },
+              "name": { "type": "string" },
+              "slot": { "type": "string" },
+              "quantity": { "type": "number" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "name", "slot", "calories", "protein", "carbs", "fat"],
+            "properties": {
+              "type": { "type": "string", "enum": ["logged"] },
+              "name": { "type": "string" },
+              "slot": { "type": "string" },
+              "calories": { "type": "number" },
+              "protein": { "type": "number" },
+              "carbs": { "type": "number" },
+              "fat": { "type": "number" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type", "text"],
+            "properties": {
+              "type": { "type": "string", "enum": ["reply"] },
+              "text": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["type"],
+            "properties": { "type": { "type": "string", "enum": ["done"] } }
+          },
+          {
+            "type": "object",
+            "required": ["type", "message"],
+            "properties": {
+              "type": { "type": "string", "enum": ["error"] },
+              "message": { "type": "string" }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
