@@ -99,6 +99,11 @@ export function clearDay(date: string): number {
 }
 
 /** Clear the entire food log. */
+/** All dates that have at least one logged entry. */
+export function getAllLogDates(): string[] {
+  return [...LOG.keys()].sort();
+}
+
 export function clearAllFoodLog(): void {
   LOG.clear();
   scheduleSave();

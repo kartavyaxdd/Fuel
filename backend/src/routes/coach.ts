@@ -81,4 +81,29 @@ router.post('/coach/chat', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/coach/chat/sync — synchronous JSON endpoint for ChatGPT Actions.
+ * ChatGPT HTTP Actions cannot consume SSE — this returns {reply} as plain JSON.
+ * Uses the same Gemini backend; SSE progress events are collected and discarded.
+ */
+router.post('/coach/chat/sync', async (req, res) => {
+  if (!isCoachEnabled()) {
+    res.status(503).json({ error: 'Coach unavailable. Set GEMINI_API_KEY.' });
+    return;
+  }
+
+  const { message, sessionHistory } = req.body ?? {};
+  if (typeof message !== 'string' || message.trim().length === 0) {
+    res.status(400).json({ error: 'Message is required.' });
+    return;
+  }
+
+  try {
+    const reply = await chatWithCoach(message, sessionHistory ?? [], undefined);
+    res.json({ reply });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });
+  }
+});
+
 export default router;

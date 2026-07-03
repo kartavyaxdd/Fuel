@@ -7,6 +7,9 @@
   "scripts": {
     "dev": "nodemon src/index.ts",
     "build": "tsc",
+    "build:mcp": "tsc && node dist/mcp-server.js",
+    "mcp": "node dist/mcp-server.js",
+    "start": "node dist/index.js",
     "test": "jest"
   },
   "dependencies": {

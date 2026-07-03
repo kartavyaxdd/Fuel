@@ -870,6 +870,76 @@
         }
       }
     },
+    "/coach/chat/sync": {
+      "post": {
+        "tags": [
+          "Coach"
+        ],
+        "summary": "Chat with AI coach (sync JSON)",
+        "description": "Synchronous chat with the Gemini-powered AI coach. Returns plain JSON — use this from ChatGPT Actions (SSE not supported by ChatGPT). Same backend as /coach/chat. Requires GEMINI_API_KEY.",
+        "operationId": "chatWithCoachSync",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "User's message to the coach."
+                  },
+                  "sessionHistory": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/ChatMessage"
+                    },
+                    "description": "Prior conversation turns for multi-turn chat."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Coach reply",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reply": {
+                      "type": "string",
+                      "description": "Coach's text response."
+                    }
+                  },
+                  "required": ["reply"]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or empty message",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "503": {
+            "description": "Coach unavailable (GEMINI_API_KEY not set)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/reset": {
       "post": {
         "tags": [

@@ -17,11 +17,18 @@ dotenv.config();
 
 const app: Express = express();
 
-// CORS configuration
-const frontendURL = process.env.FRONTEND_URL || 'http://localhost:3000';
+// CORS configuration — allow frontend URL + Render production URL
+const allowedOrigins: string[] = ['https://fuel-2j8v.onrender.com'];
+if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
+if (process.env.NODE_ENV !== 'production') allowedOrigins.push('http://localhost:3000');
+
 app.use(cors({
-  origin: [frontendURL, 'https://fuel-2j8v.onrender.com'].filter(Boolean),
-  credentials: true
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, ChatGPT actions)
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
 }));
 
 // Body parsing middleware

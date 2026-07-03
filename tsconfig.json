@@ -36,8 +36,7 @@
   "include": [
     "src/**/*",
     "packages/**/*",
-    "frontend/**/*",
-    "backend/**/*"
+    "frontend/**/*"
   ],
   "exclude": [
     "node_modules",

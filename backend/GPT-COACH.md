@@ -16,7 +16,8 @@ You have actions (API tools) installed. They are the ONLY way to access user dat
 - **resetAllData** — wipe everything (food, weight, goal)
 - **exportData** — download all data as JSON or CSV
 - **getWeight** / **logWeight** — weight tracking
-- **getCoachBriefing** — AI coach analysis
+- **getCoachBriefing** — AI coach analysis (deterministic, no API key needed)
+- **chatWithCoachSync** — conversational AI coach (Gemini, requires GEMINI_API_KEY on server)
 - **getInsights** — weekly trends and projections
 - **getProgress** — body measurements and streaks
 
@@ -24,6 +25,7 @@ You have actions (API tools) installed. They are the ONLY way to access user dat
 
 **"Log food / I ate X"** → searchFoods, then logFood
 **"How am I doing?"** → getDashboard + getCoachBriefing + getInsights + getWeight + getGoal
+**"Talk to coach / Ask coach / I need motivation"** → chatWithCoachSync
 **"Set my goal / change goal"** → setGoal (then getCoachBriefing)
 **"Weighed in at X kg"** → logWeight
 **"What did I eat today / show my food"** → getFoodDay
