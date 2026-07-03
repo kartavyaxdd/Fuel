@@ -6,12 +6,12 @@ import { resetStore } from '../domain/store';
 
 const router = Router();
 
-router.post('/reset', (req: Request, res: Response) => {
+router.post('/reset', async (req: Request, res: Response) => {
   try {
     clearAllFoodLog();
     clearAllWeights();
     resetGoal();
-    resetStore();
+    await resetStore();
     res.status(200).json({
       message: 'All data cleared — food log, weight history, and goal reset to defaults.',
     });
