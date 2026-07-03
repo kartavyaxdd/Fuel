@@ -29,16 +29,48 @@ const SLOT_ICON: Record<MealSlot, string> = {
   snack: "M5 12h14M8 8h8M9 16h6",
 };
 
+/** Shift a YYYY-MM-DD date string by whole days, staying in UTC so we never
+ *  drift across DST/timezone boundaries. Returns YYYY-MM-DD. */
+function addDays(date: string, delta: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+function prettyDate(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** "Today" / "Yesterday" / "Tomorrow" relative to the app's today, else null. */
+function relativeDayLabel(date: string, today: string): string | null {
+  if (date === today) return "Today";
+  if (date === addDays(today, -1)) return "Yesterday";
+  if (date === addDays(today, 1)) return "Tomorrow";
+  return null;
+}
+
 export default function FoodPage() {
   const [day, setDay] = useState<FoodDay | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [addingSlot, setAddingSlot] = useState<MealSlot | null>(null);
+  // The very first load (no date param) resolves to the app's "today"; we
+  // remember it so the date nav can offer a "Today" jump and disable "next".
+  const [today, setToday] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (targetDate?: string) => {
     try {
-      const d = await apiGet<FoodDay>("/food/day");
+      const path = targetDate
+        ? `/food/day?date=${encodeURIComponent(targetDate)}`
+        : "/food/day";
+      const d = await apiGet<FoodDay>(path);
       setDay(d);
+      setToday((prev) => prev ?? d.date);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
@@ -48,6 +80,32 @@ export default function FoodPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const goToDate = useCallback(
+    (targetDate: string) => {
+      setDay(null); // show skeleton while the new day loads
+      load(targetDate);
+    },
+    [load],
+  );
+
+  const copyYesterday = useCallback(async () => {
+    if (!day) return;
+    setBusy(true);
+    try {
+      const from = addDays(day.date, -1);
+      const updated = await apiPost<FoodDay>("/food/copy", {
+        from,
+        to: day.date,
+      });
+      setDay(updated);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to copy yesterday");
+    } finally {
+      setBusy(false);
+    }
+  }, [day]);
 
   const logFood = useCallback(
     async (slot: MealSlot, foodId: string, quantity: number) => {
@@ -92,11 +150,9 @@ export default function FoodPage() {
   if (error && !day) return <ErrorState message={error} />;
   if (!day) return <SkeletonState />;
 
-  const prettyDate = new Date(day.date).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  const isToday = today != null && day.date === today;
+  const relLabel = today ? relativeDayLabel(day.date, today) : null;
+  const isEmptyDay = day.groups.every((g) => g.entries.length === 0);
 
   const macroTarget = (key: "protein" | "carbs" | "fat"): MacroTarget => ({
     target: day.target[key],
@@ -108,17 +164,35 @@ export default function FoodPage() {
     <div>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-sky-400">{prettyDate}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-sky-400">
+              {relLabel ?? prettyDate(day.date)}
+            </p>
+            {relLabel ? (
+              <span className="text-xs text-white/30">{prettyDate(day.date)}</span>
+            ) : null}
+          </div>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-white">
             Food Log
           </h1>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold tabular-nums text-white">
-            {Math.max(day.remaining.calories, 0)}
-          </div>
-          <div className="text-xs uppercase tracking-wider text-white/40">
-            kcal left
+        <div className="flex items-end gap-4">
+          <DateNav
+            date={day.date}
+            canGoNext={!isToday}
+            showToday={!isToday}
+            disabled={busy}
+            onPrev={() => goToDate(addDays(day.date, -1))}
+            onNext={() => goToDate(addDays(day.date, 1))}
+            onToday={() => today && goToDate(today)}
+          />
+          <div className="text-right">
+            <div className="text-2xl font-bold tabular-nums text-white">
+              {Math.max(day.remaining.calories, 0)}
+            </div>
+            <div className="text-xs uppercase tracking-wider text-white/40">
+              kcal left
+            </div>
           </div>
         </div>
       </header>
@@ -139,6 +213,30 @@ export default function FoodPage() {
             </div>
           </div>
         </Panel>
+
+        {/* Copy-yesterday shortcut on an empty day */}
+        {isEmptyDay ? (
+          <div className="lg:col-span-3">
+            <button
+              type="button"
+              onClick={copyYesterday}
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] py-3 text-sm font-medium text-white/60 transition hover:border-sky-400/40 hover:bg-sky-400/[0.06] hover:text-sky-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.8}
+                className="h-4 w-4"
+              >
+                <rect x="9" y="9" width="11" height="11" rx="2" />
+                <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+              </svg>
+              {busy ? "Copying…" : "Copy yesterday's meals"}
+            </button>
+          </div>
+        ) : null}
 
         {/* Meal groups */}
         {day.groups.map((group) => (
@@ -164,6 +262,66 @@ export default function FoodPage() {
           onLog={logFood}
         />
       ) : null}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Date navigation                                                     */
+/* ------------------------------------------------------------------ */
+
+function DateNav({
+  canGoNext,
+  showToday,
+  disabled,
+  onPrev,
+  onNext,
+  onToday,
+}: {
+  date: string;
+  canGoNext: boolean;
+  showToday: boolean;
+  disabled: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  onToday: () => void;
+}) {
+  const arrow =
+    "flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-white/70 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-30";
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label="Previous day"
+        onClick={onPrev}
+        disabled={disabled}
+        className={arrow}
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 18l-6-6 6-6" />
+        </svg>
+      </button>
+      {showToday ? (
+        <button
+          type="button"
+          onClick={onToday}
+          disabled={disabled}
+          className="h-9 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-xs font-medium text-white/70 transition hover:border-sky-400/40 hover:bg-sky-400/[0.06] hover:text-sky-300 disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          Today
+        </button>
+      ) : null}
+      <button
+        type="button"
+        aria-label="Next day"
+        onClick={onNext}
+        disabled={disabled || !canGoNext}
+        className={arrow}
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M9 18l6-6-6-6" />
+        </svg>
+      </button>
     </div>
   );
 }
