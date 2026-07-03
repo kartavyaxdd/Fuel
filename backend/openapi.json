@@ -3,7 +3,11 @@
   "info": {
     "title": "Nutrition Tracker API",
     "version": "1.0.0",
-    "description": "Full-featured nutrition and body-composition tracking API with deterministic AI coach. Companion to the visionOS-style frontend.\n\n**Base URLs (local dev):**\n- Frontend: http://localhost:3000\n- Backend: http://localhost:3001\n\nThe demo runs on a hardcoded anchor date (2026-07-02) — all endpoints use this as 'today' unless overridden.\n\nSupports ChatGPT / custom GPT plugins, Claude Desktop via MCP, or any OpenAPI-compatible client."
+    "description": "Full-featured nutrition and body-composition tracking API with deterministic AI coach. Companion to the visionOS-style frontend.\n\n**Base URLs (local dev):**\n- Frontend: http://localhost:3000\n- Backend: http://localhost:3001\n\nThe demo runs on a hardcoded anchor date (2026-07-02) — all endpoints use this as 'today' unless overridden.\n\nSupports ChatGPT / custom GPT plugins, Claude Desktop via MCP, or any OpenAPI-compatible client.",
+    "x-gpt": {
+      "model": "gpt-4o",
+      "description": "Autonomous nutrition AI coach — logs food, tracks progress, sets goals, and holds you accountable."
+    }
   },
   "servers": [
     {
@@ -11,6 +15,17 @@
       "description": "Local development"
     }
   ],
+  "x-gpt-autonomous": {
+    "onboarding": true,
+    "proactive_actions": [
+      "getGoal",
+      "getDashboard",
+      "getCoachBriefing",
+      "getFoodDay",
+      "searchFoods",
+      "logFood"
+    ]
+  },
   "tags": [
     { "name": "Dashboard", "description": "Daily nutrition overview" },
     { "name": "Food", "description": "Food search, logging, and day view" },
