@@ -11,8 +11,9 @@ import {
   type DailyRecord,
 } from './energyModel';
 import { computeGoalProgress, recommendedCalorieTarget } from './goals';
-import { generateSampleHistory } from './sampleData';
+import { generateSampleHistory, DEMO_ANCHOR_DATE } from './sampleData';
 import { getGoal } from './userGoal';
+import { getDayMeals } from './foodLog';
 
 /** Macro split (fraction of calories) targeted per gram type. */
 const PROTEIN_KCAL_PER_G = 4;
@@ -27,13 +28,17 @@ function macroTarget(target: number, consumed: number): MacroTarget {
   };
 }
 
-/** Today's demo meals — the "consumed so far" side of the daily log. */
-function demoMeals(): Meal[] {
-  return [
-    { id: 1, name: 'Greek yogurt & berries', calories: 320, protein: 28, carbs: 34, fat: 8, time: '08:15' },
-    { id: 2, name: 'Chicken rice bowl', calories: 640, protein: 48, carbs: 68, fat: 16, time: '12:40' },
-    { id: 3, name: 'Protein shake', calories: 180, protein: 30, carbs: 6, fat: 3, time: '16:00' },
-  ];
+/** Today's meals pulled from the real food log (empty after reset). */
+function todaysMeals(): Meal[] {
+  return getDayMeals(DEMO_ANCHOR_DATE).map((e, i) => ({
+    id: i + 1,
+    name: e.name,
+    calories: e.calories,
+    protein: e.protein,
+    carbs: e.carbs,
+    fat: e.fat,
+    time: e.time,
+  }));
 }
 
 export interface BuildDashboardOptions {
@@ -67,8 +72,8 @@ export function buildDashboard(
 
   const calorieTarget = recommendedCalorieTarget(expenditureEstimate, mode);
 
-  // Today's consumed values from the demo meal log.
-  const meals = demoMeals();
+  // Today's consumed values from the actual food log.
+  const meals = todaysMeals();
   const consumedCals = meals.reduce((s, m) => s + m.calories, 0);
   const consumedProtein = meals.reduce((s, m) => s + m.protein, 0);
   const consumedCarbs = meals.reduce((s, m) => s + m.carbs, 0);

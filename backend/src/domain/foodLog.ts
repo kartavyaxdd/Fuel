@@ -194,6 +194,22 @@ interface FoodLogSnapshot {
   days: Record<string, LoggedFood[]>;
 }
 
+/**
+ * Get today's logged meals for the dashboard (name + macros + time).
+ * Returns empty array when no food is logged (fresh reset state).
+ */
+export function getDayMeals(date: string): { name: string; calories: number; protein: number; carbs: number; fat: number; time: string }[] {
+  const entries = LOG.get(date) ?? [];
+  return entries.map(e => ({
+    name: e.name,
+    calories: e.calories,
+    protein: e.protein,
+    carbs: e.carbs,
+    fat: e.fat,
+    time: e.loggedAt.includes('T') ? e.loggedAt.split('T')[1].slice(0, 5) : e.loggedAt,
+  }));
+}
+
 /** Persist the log store: replaces in-memory state with the on-disk snapshot. */
 registerStore(
   'foodLog',
