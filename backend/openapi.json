@@ -609,7 +609,7 @@
       "post": {
         "tags": ["Coach"],
         "summary": "Chat with AI coach (SSE stream)",
-        "description": "Server-Sent Events streaming chat with the Gemini-powered AI coach. The coach can autonomously search, find, and log foods using the `log_food` tool. Requires GEMINI_API_KEY environment variable.\n\nEvents are newline-delimited JSON (`data: {...}\\n\\n`). Read the stream until `{\"type\":\"done\"}` is received or the connection closes.\n\n**Event types (in order):**\n- `thinking`: Coach is processing\n- `searching`: Searching food database\n- `found`: Food match found with macros\n- `logging`: About to log a food\n- `logged`: Food logged successfully\n- `reply`: Coach's text response\n- `done`: Stream complete\n- `error`: Something went wrong",
+        "description": "Server-Sent Events streaming chat with the Gemini-powered AI coach. Can autonomously search and log foods via the `log_food` tool. Requires GEMINI_API_KEY.\n\nEvents are NDJSON (`data: {...}\\n\\n`): thinking, searching, found, logging, logged, reply, done, error.",
         "operationId": "chatWithCoach",
         "requestBody": {
           "required": true,
@@ -1153,6 +1153,13 @@
       "CoachChatEvent": {
         "type": "object",
         "description": "A single SSE event (data: {...}\\n\\n). The discriminator is the `type` field.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["thinking", "searching", "found", "logging", "logged", "reply", "done", "error"],
+            "description": "Event type discriminator."
+          }
+        },
         "oneOf": [
           {
             "type": "object",
