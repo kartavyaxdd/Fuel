@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.0",
+  "openapi": "3.1.0",
   "info": {
     "title": "Fuel Nutrition API",
     "version": "1.0.0",
@@ -516,8 +516,7 @@
                   },
                   "weight": {
                     "type": "number",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
+                    "exclusiveMinimum": 0,
                     "maximum": 500,
                     "description": "Scale weight in kg."
                   }
@@ -701,14 +700,12 @@
                   },
                   "targetWeight": {
                     "type": "number",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
+                    "exclusiveMinimum": 0,
                     "description": "Target body weight in kg."
                   },
                   "startWeight": {
                     "type": "number",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
+                    "exclusiveMinimum": 0,
                     "description": "Starting body weight in kg (optional, falls back to existing)."
                   },
                   "startDate": {
@@ -940,14 +937,29 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "exportedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "demoDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "goal": {
+                      "$ref": "#/components/schemas/UserGoal"
+                    },
+                    "weight": {
+                      "$ref": "#/components/schemas/WeightData"
+                    },
+                    "food": {
+                      "$ref": "#/components/schemas/FoodDay"
+                    }
+                  }
                 }
               },
-              "text/csv": {
-                "schema": {
-                  "type": "string"
-                }
-              }
+              "text/csv": {}
             }
           },
           "500": {
@@ -1257,8 +1269,7 @@
           },
           "quantity": {
             "type": "number",
-            "minimum": 0,
-            "exclusiveMinimum": true,
+            "exclusiveMinimum": 0,
             "description": "Number of servings."
           }
         }
