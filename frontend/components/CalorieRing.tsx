@@ -46,15 +46,15 @@ export function CalorieRing({
         />
         <defs>
           <linearGradient id="calorieGradient" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor={over ? "#f97316" : "#38bdf8"} />
-            <stop offset="100%" stopColor={over ? "#ef4444" : "#6366f1"} />
+            <stop offset="0%" stopColor={over ? "rgba(255,60,60,0.9)" : "rgba(255,255,255,0.9)"} />
+            <stop offset="100%" stopColor={over ? "rgba(255,60,60,0.6)" : "rgba(255,255,255,0.55)"} />
           </linearGradient>
         </defs>
       </svg>
       <div className="absolute flex flex-col items-center">
         <span
           className={`text-4xl font-bold tracking-tight ${
-            over ? "text-orange-400" : "text-white"
+            over ? "text-red-400" : "text-white"
           }`}
         >
           {Math.abs(remaining)}

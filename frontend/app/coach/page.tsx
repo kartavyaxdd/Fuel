@@ -1,14 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   CoachData,
   CoachRecommendation,
   CoachTone,
   GoalMode,
+  ChatMessage,
 } from "@nutrition/types";
 import { apiGet } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
+
+/* ------------------------------------------------ SSE progress event types */
+
+type ProgressEvent =
+  | { type: "thinking" }
+  | { type: "searching"; query: string }
+  | { type: "found"; name: string; calories: number; protein: number; carbs: number; fat: number }
+  | { type: "logging"; name: string; slot: string; quantity: number }
+  | { type: "logged"; name: string; slot: string; calories: number; protein: number; carbs: number; fat: number }
+  | { type: "error"; message: string }
+  | { type: "reply"; text: string }
+  | { type: "done" };
 
 const MODES: { value: GoalMode; label: string }[] = [
   { value: "fat-loss", label: "Fat loss" },
@@ -40,28 +53,28 @@ const TONE_STYLE: Record<
   { ring: string; chip: string; icon: string; glyph: string }
 > = {
   positive: {
-    ring: "border-emerald-400/20 bg-emerald-400/[0.04]",
-    chip: "bg-emerald-400/15 text-emerald-300",
-    icon: "text-emerald-400",
+    ring: "border-white/10 bg-white/[0.04]",
+    chip: "bg-white/10 text-white/80",
+    icon: "text-white/80",
     glyph: "M20 6 9 17l-5-5",
   },
   neutral: {
-    ring: "border-sky-400/20 bg-sky-400/[0.04]",
-    chip: "bg-sky-400/15 text-sky-300",
-    icon: "text-sky-400",
+    ring: "border-white/10 bg-white/[0.04]",
+    chip: "bg-white/10 text-white/80",
+    icon: "text-white/80",
     glyph: "M12 16v-4M12 8h.01",
   },
   warning: {
-    ring: "border-orange-400/20 bg-orange-400/[0.04]",
-    chip: "bg-orange-400/15 text-orange-300",
-    icon: "text-orange-400",
+    ring: "border-white/10 bg-white/[0.04]",
+    chip: "bg-white/10 text-white/80",
+    icon: "text-white/80",
     glyph:
       "M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z",
   },
   action: {
-    ring: "border-violet-400/20 bg-violet-400/[0.04]",
-    chip: "bg-violet-400/15 text-violet-300",
-    icon: "text-violet-400",
+    ring: "border-white/10 bg-white/[0.04]",
+    chip: "bg-white/10 text-white/80",
+    icon: "text-white/80",
     glyph: "M13 2 3 14h7l-1 8 10-12h-7l1-8Z",
   },
 };
@@ -115,10 +128,10 @@ function ConfidenceRing({ value }: { value: number }) {
   const dash = c * pct;
   const stroke =
     pct >= 0.75
-      ? "rgb(52,211,153)"
+      ? "rgba(255,255,255,0.9)"
       : pct >= 0.5
-        ? "rgb(56,189,248)"
-        : "rgb(251,146,60)";
+        ? "rgba(255,255,255,0.6)"
+        : "rgba(255,255,255,0.35)";
   return (
     <div className="relative h-16 w-16 shrink-0">
       <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90">
@@ -164,9 +177,9 @@ function MacroBar({
   const fKcal = fat * 9;
   const total = Math.max(1, pKcal + cKcal + fKcal);
   const seg = [
-    { label: "Protein", grams: protein, kcal: pKcal, color: "rgb(52,211,153)" },
-    { label: "Carbs", grams: carbs, kcal: cKcal, color: "rgb(56,189,248)" },
-    { label: "Fat", grams: fat, kcal: fKcal, color: "rgb(251,146,60)" },
+    { label: "Protein", grams: protein, kcal: pKcal, color: "rgba(255,255,255,0.85)" },
+    { label: "Carbs", grams: carbs, kcal: cKcal, color: "rgba(255,255,255,0.55)" },
+    { label: "Fat", grams: fat, kcal: fKcal, color: "rgba(255,255,255,0.3)" },
   ];
   return (
     <div className="space-y-3">
@@ -287,12 +300,7 @@ function Stat({
   tone?: "neutral" | "good" | "warn";
   hint?: string;
 }) {
-  const toneClass =
-    tone === "good"
-      ? "text-emerald-400"
-      : tone === "warn"
-        ? "text-orange-400"
-        : "text-white";
+  const toneClass = "text-white";
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs font-medium uppercase tracking-wider text-white/35">
@@ -300,6 +308,80 @@ function Stat({
       </span>
       <span className={`text-xl font-bold ${toneClass}`}>{value}</span>
       {hint ? <span className="text-[11px] text-white/30">{hint}</span> : null}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------- Status card (SSE) */
+
+const STATUS_META: Record<string, { icon: string; label: (e: ProgressEvent) => string; pulse?: boolean }> = {
+  thinking: {
+    icon: "✦",
+    label: () => "Coach is thinking…",
+    pulse: true,
+  },
+  searching: {
+    icon: "⌕",
+    label: (e) => `Searching food database for "${(e as { type: "searching"; query: string }).query}"…`,
+    pulse: true,
+  },
+  found: {
+    icon: "◎",
+    label: (e) => {
+      const ev = e as { type: "found"; name: string; calories: number };
+      return `Found: ${ev.name} · ${ev.calories} kcal/serving`;
+    },
+  },
+  logging: {
+    icon: "⊕",
+    label: (e) => {
+      const ev = e as { type: "logging"; name: string; slot: string; quantity: number };
+      return `Adding ${ev.quantity}× ${ev.name} to ${ev.slot}…`;
+    },
+    pulse: true,
+  },
+  logged: {
+    icon: "✓",
+    label: (e) => {
+      const ev = e as { type: "logged"; name: string; slot: string; calories: number; protein: number; carbs: number; fat: number };
+      return `Logged to ${ev.slot}: ${ev.name} · ${ev.calories} kcal · P${ev.protein}g C${ev.carbs}g F${ev.fat}g`;
+    },
+  },
+  error: {
+    icon: "✕",
+    label: (e) => (e as { type: "error"; message: string }).message,
+  },
+};
+
+function StatusCard({ event, active }: { event: ProgressEvent; active: boolean }) {
+  const meta = STATUS_META[event.type];
+  if (!meta) return null;
+  const isError = event.type === "error";
+  const isSuccess = event.type === "logged" || event.type === "found";
+
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 text-sm transition-all duration-300 ${
+        isError
+          ? "border-red-500/20 bg-red-500/[0.06] text-red-300/80"
+          : isSuccess
+          ? "border-white/10 bg-white/[0.05] text-white/80"
+          : "border-white/[0.06] bg-white/[0.03] text-white/50"
+      }`}
+    >
+      <span
+        className={`mt-0.5 shrink-0 text-base font-bold leading-none ${
+          isError ? "text-red-400" : isSuccess ? "text-white/90" : "text-white/40"
+        } ${active && meta.pulse ? "animate-pulse" : ""}`}
+      >
+        {meta.icon}
+      </span>
+      <span className="text-xs leading-relaxed">{meta.label(event)}</span>
+      {event.type === "logged" && (
+        <span className="ml-auto shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/70">
+          Added
+        </span>
+      )}
     </div>
   );
 }
@@ -329,6 +411,83 @@ export default function CoachPage() {
     load(mode);
   }, [load, mode]);
 
+  // Chat state
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [statusEvents, setStatusEvents] = useState<ProgressEvent[]>([]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, chatLoading, statusEvents]);
+
+  const sendMessage = useCallback(async () => {
+    if (!chatInput.trim() || chatLoading) return;
+    const userMsg: ChatMessage = { role: "user", text: chatInput };
+    setChatMessages((prev) => [...prev, userMsg]);
+    setChatLoading(true);
+    setChatError(null);
+    setStatusEvents([]);
+    const input = chatInput;
+    setChatInput("");
+
+    try {
+      const res = await fetch(`${API_BASE}/coach/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: input, sessionHistory: chatMessages }),
+      });
+
+      if (!res.ok || !res.body) {
+        const err = await res.json().catch(() => ({ error: "Request failed" }));
+        throw new Error(err.error ?? "Request failed");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+          const raw = trimmed.slice(5).trim();
+          try {
+            const event: ProgressEvent = JSON.parse(raw);
+            if (event.type === "reply") {
+              const modelMsg: ChatMessage = { role: "model", text: event.text };
+              setChatMessages((prev) => [...prev, modelMsg]);
+              setStatusEvents([]);
+            } else if (event.type === "done") {
+              // nothing
+            } else if (event.type === "error") {
+              setChatError(event.message);
+            } else {
+              setStatusEvents((prev) => [...prev, event]);
+            }
+          } catch {
+            // ignore malformed lines
+          }
+        }
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to send message";
+      setChatError(msg);
+      setChatMessages((prev) => prev.slice(0, -1));
+    } finally {
+      setChatLoading(false);
+      setStatusEvents([]);
+    }
+  }, [chatInput, chatLoading, chatMessages, API_BASE]);
+
   if (loading && !data) {
     return <Skeleton />;
   }
@@ -346,7 +505,7 @@ export default function CoachPage() {
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-orange-400/30 bg-orange-400/10 px-4 py-3 text-sm text-orange-200">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       ) : null}
@@ -355,10 +514,10 @@ export default function CoachPage() {
         <>
           {/* Hero briefing */}
           <Panel className="relative overflow-hidden">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl" />
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/[0.03] blur-3xl" />
             <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 flex-1">
-                <span className="text-xs font-medium uppercase tracking-wider text-violet-300/70">
+                <span className="text-xs font-medium uppercase tracking-wider text-white/50">
                   Today&apos;s read
                 </span>
                 <h2 className="mt-1 text-xl font-bold leading-snug text-white">
@@ -375,10 +534,10 @@ export default function CoachPage() {
             </div>
 
             {/* Focus lever */}
-            <div className="relative mt-4 flex items-start gap-3 rounded-xl border border-violet-400/20 bg-violet-400/[0.06] px-4 py-3">
+            <div className="relative mt-4 flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
               <svg
                 viewBox="0 0 24 24"
-                className="mt-0.5 h-5 w-5 shrink-0 text-violet-300"
+                className="mt-0.5 h-5 w-5 shrink-0 text-white/70"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -388,7 +547,7 @@ export default function CoachPage() {
                 <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" />
               </svg>
               <div>
-                <div className="text-xs font-medium uppercase tracking-wider text-violet-300/70">
+                <div className="text-xs font-medium uppercase tracking-wider text-white/50">
                   Biggest lever right now
                 </div>
                 <p className="mt-0.5 text-sm font-medium text-white/85">{data.focus}</p>
@@ -447,7 +606,7 @@ export default function CoachPage() {
                 <div className="h-2 overflow-hidden rounded-full bg-white/5">
                   <div
                     className={`h-full rounded-full ${
-                      data.checkIn.adherence >= 0.7 ? "bg-emerald-400" : "bg-orange-400"
+                      data.checkIn.adherence >= 0.7 ? "bg-white" : "bg-white/40"
                     }`}
                     style={{ width: `${Math.round(data.checkIn.adherence * 100)}%` }}
                   />
@@ -474,8 +633,8 @@ export default function CoachPage() {
                   <span
                     className={`mb-1 rounded-lg px-2 py-1 text-xs font-bold ${
                       data.targets.delta < 0
-                        ? "bg-orange-400/15 text-orange-300"
-                        : "bg-emerald-400/15 text-emerald-300"
+                        ? "bg-white/10 text-white"
+                        : "bg-white/10 text-white"
                     }`}
                   >
                     {fmtSigned(data.targets.delta)} vs{" "}
@@ -533,6 +692,77 @@ export default function CoachPage() {
               </ul>
             </Panel>
           ) : null}
+
+          {/* Brutal AI Coach Chat */}
+          <Panel className="mt-6">
+            <PanelHeader title="Brutal Coach" hint="chat — no coddling" />
+            {chatError ? (
+              <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {chatError}
+              </div>
+            ) : null}
+
+            <div className="space-y-3 max-h-[480px] overflow-y-auto pr-1">
+              {chatMessages.length === 0 && !chatLoading ? (
+                <p className="text-sm text-white/40 text-center py-8">
+                  Ask anything — macros, logging food, why you&apos;re stuck.<br />
+                  Try: <span className="text-white/60">&quot;Log 2 eggs for breakfast&quot;</span>
+                </p>
+              ) : (
+                <>
+                  {chatMessages.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                        msg.role === "user"
+                          ? "bg-white/10 text-white rounded-br-none"
+                          : "bg-white/[0.06] text-white/90 rounded-bl-none"
+                      }`}>
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Live status cards while loading */}
+                  {chatLoading && (
+                    <div className="space-y-2">
+                      {statusEvents.length === 0 && (
+                        <StatusCard event={{ type: "thinking" }} active />
+                      )}
+                      {statusEvents.map((evt, i) => (
+                        <StatusCard key={i} event={evt} active={i === statusEvents.length - 1} />
+                      ))}
+                    </div>
+                  )}
+                  <div ref={chatEndRef} />
+                </>
+              )}
+            </div>
+
+            <div className="mt-4 flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                disabled={chatLoading}
+                placeholder={chatLoading ? "Coach is working…" : "Message your coach…"}
+                className="flex-1 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/20 disabled:opacity-50"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={chatLoading || !chatInput.trim()}
+                className="shrink-0 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {chatLoading ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-white/60 animate-bounce [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-white/60 animate-bounce [animation-delay:120ms]" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-white/60 animate-bounce [animation-delay:240ms]" />
+                  </span>
+                ) : "Send"}
+              </button>
+            </div>
+          </Panel>
 
           <p className="text-center text-xs text-white/25">
             Generated {new Date(data.generatedAt).toLocaleString()}

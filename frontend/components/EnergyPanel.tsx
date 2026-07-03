@@ -23,7 +23,7 @@ export function EnergyPanel({ energy }: { energy: EnergyModel }) {
       </div>
 
       <div className="mt-1 flex items-center gap-1.5 text-sm">
-        <span className={trendingDown ? "text-emerald-400" : "text-orange-400"}>
+        <span className={trendingDown ? "text-white" : "text-white/50"}>
           {trendingDown ? "▼" : "▲"} {Math.abs(energy.trendDelta).toFixed(2)} kg/wk
         </span>
         <span className="text-white/30">weight trend</span>
@@ -36,7 +36,7 @@ export function EnergyPanel({ energy }: { energy: EnergyModel }) {
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-white/10">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-sky-400 to-indigo-500 transition-all"
+            className="h-full rounded-full bg-white transition-all"
             style={{ width: `${confidencePct}%` }}
           />
         </div>

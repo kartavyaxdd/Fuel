@@ -9,9 +9,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen">
       {/* Ambient gradient wash — sits behind everything. */}
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-40 -left-32 h-96 w-96 rounded-full bg-sky-500/10 blur-[120px]" />
-        <div className="absolute top-1/3 -right-32 h-96 w-96 rounded-full bg-indigo-500/10 blur-[120px]" />
-        <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-emerald-500/[0.07] blur-[120px]" />
+        <div className="absolute inset-0" style={{background: 'radial-gradient(ellipse at top, rgba(255,255,255,0.03) 0%, transparent 70%)'}} />
       </div>
 
       <Sidebar />

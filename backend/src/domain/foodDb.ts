@@ -39,8 +39,19 @@ export const FOOD_DB: FoodItem[] = [
 /** Index by id for O(1) lookup when logging. */
 const BY_ID = new Map(FOOD_DB.map((f) => [f.id, f]));
 
+/**
+ * Fallback resolver for ids that aren't in the seed DB — set by the live
+ * search layer so remote (OpenFoodFacts/USDA) items surfaced in search can be
+ * resolved when logged. Kept as a hook to avoid a circular import.
+ */
+let externalResolver: ((id: string) => FoodItem | undefined) | null = null;
+
+export function registerFoodResolver(fn: (id: string) => FoodItem | undefined): void {
+  externalResolver = fn;
+}
+
 export function getFoodById(id: string): FoodItem | undefined {
-  return BY_ID.get(id);
+  return BY_ID.get(id) ?? externalResolver?.(id);
 }
 
 /**

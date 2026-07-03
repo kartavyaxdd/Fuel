@@ -47,12 +47,7 @@ function StatCard({
   hint?: string;
   tone?: "neutral" | "good" | "warn";
 }) {
-  const toneClass =
-    tone === "good"
-      ? "text-emerald-400"
-      : tone === "warn"
-        ? "text-orange-400"
-        : "text-white";
+  const toneClass = "text-white";
   return (
     <Panel className="flex flex-col gap-1">
       <div className="text-xs font-medium uppercase tracking-wider text-white/40">
@@ -71,18 +66,18 @@ const TONE_STYLE: Record<
   { dot: string; ring: string; glyph: string }
 > = {
   positive: {
-    dot: "bg-emerald-400",
-    ring: "border-emerald-400/20 bg-emerald-400/[0.04]",
+    dot: "bg-white/70",
+    ring: "border-white/10 bg-white/[0.04]",
     glyph: "M20 6 9 17l-5-5",
   },
   neutral: {
-    dot: "bg-sky-400",
-    ring: "border-sky-400/20 bg-sky-400/[0.04]",
+    dot: "bg-white/70",
+    ring: "border-white/10 bg-white/[0.04]",
     glyph: "M12 16v-4M12 8h.01",
   },
   warning: {
-    dot: "bg-orange-400",
-    ring: "border-orange-400/20 bg-orange-400/[0.04]",
+    dot: "bg-white/70",
+    ring: "border-white/10 bg-white/[0.04]",
     glyph: "M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z",
   },
 };
@@ -159,9 +154,9 @@ function WeeklyRateChart({ weeks }: { weeks: WeekSummary[] }) {
         const h = (Math.abs(r) / maxAbs) * (innerH / 2);
         const up = r > 0;
         const yTop = up ? zeroY : zeroY - h;
-        // For fat-loss context: losing (negative) is good → emerald.
+        // For fat-loss context: losing (negative) is good → brighter.
         const good = r < 0;
-        const fill = good ? "rgb(52,211,153)" : "rgb(251,146,60)";
+        const fill = good ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)";
         return (
           <g key={w.weekStart}>
             <rect
@@ -293,7 +288,7 @@ export default function InsightsPage() {
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-orange-400/30 bg-orange-400/10 px-4 py-3 text-sm text-orange-200">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       ) : null}
@@ -365,8 +360,8 @@ export default function InsightsPage() {
                 <span
                   className={`flex h-10 w-10 items-center justify-center rounded-full ${
                     data.plateau.detected
-                      ? "bg-orange-400/15 text-orange-400"
-                      : "bg-emerald-400/15 text-emerald-400"
+                      ? "bg-white/10 text-white"
+                      : "bg-white/10 text-white"
                   }`}
                 >
                   <svg
@@ -495,8 +490,8 @@ export default function InsightsPage() {
                           w.weeklyRate == null
                             ? "text-white/30"
                             : w.weeklyRate < 0
-                              ? "text-emerald-400"
-                              : "text-orange-400"
+                              ? "text-white"
+                              : "text-white/50"
                         }`}
                       >
                         {w.weeklyRate == null ? "—" : fmtKg(w.weeklyRate)}
@@ -540,7 +535,7 @@ function Meter({
       <div className="h-2 overflow-hidden rounded-full bg-white/5">
         <div
           className={`h-full rounded-full ${
-            tone === "good" ? "bg-emerald-400" : "bg-orange-400"
+            tone === "good" ? "bg-white" : "bg-white/40"
           }`}
           style={{ width: `${pct}%` }}
         />
@@ -563,7 +558,7 @@ function Row({
       <dt className="text-white/40">{k}</dt>
       <dd
         className={`font-medium ${
-          tone === "good" ? "text-emerald-400" : "text-white/80"
+          tone === "good" ? "text-white" : "text-white/80"
         }`}
       >
         {v}

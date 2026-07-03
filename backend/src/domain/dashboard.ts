@@ -12,6 +12,7 @@ import {
 } from './energyModel';
 import { computeGoalProgress, recommendedCalorieTarget } from './goals';
 import { generateSampleHistory } from './sampleData';
+import { getGoal } from './userGoal';
 
 /** Macro split (fraction of calories) targeted per gram type. */
 const PROTEIN_KCAL_PER_G = 4;
@@ -111,9 +112,10 @@ export function buildDashboard(
 
 /** Convenience: build the dashboard from generated demo history. */
 export function buildDemoDashboard(): DashboardData {
+  const goal = getGoal();
   return buildDashboard(generateSampleHistory(), {
-    mode: 'fat-loss',
-    targetWeight: 78,
+    mode: goal.mode,
+    targetWeight: goal.targetWeight,
   });
 }
 

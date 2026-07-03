@@ -23,6 +23,9 @@ function isoDaysBefore(anchor: string, daysBefore: number): string {
   return dt.toISOString().split('T')[0];
 }
 
+/** The fixed demo anchor date — shared by all modules that need to log to "today" in demo mode. */
+export const DEMO_ANCHOR_DATE = '2026-07-02';
+
 export interface SampleHistoryOptions {
   days?: number;
   anchorDate?: string;
@@ -44,7 +47,7 @@ export function generateSampleHistory(
 ): DailyRecord[] {
   const {
     days = 90,
-    anchorDate = '2026-07-02',
+    anchorDate = DEMO_ANCHOR_DATE,
     startWeight = 84,
     trueExpenditure = 2750,
     avgIntake = 2200,

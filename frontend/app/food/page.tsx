@@ -165,7 +165,7 @@ export default function FoodPage() {
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-sky-400">
+            <p className="text-sm font-medium text-white/40">
               {relLabel ?? prettyDate(day.date)}
             </p>
             {relLabel ? (
@@ -221,7 +221,7 @@ export default function FoodPage() {
               type="button"
               onClick={copyYesterday}
               disabled={busy}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] py-3 text-sm font-medium text-white/60 transition hover:border-sky-400/40 hover:bg-sky-400/[0.06] hover:text-sky-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/15 bg-white/[0.02] py-3 text-sm font-medium text-white/60 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -251,7 +251,7 @@ export default function FoodPage() {
       </div>
 
       {error && day ? (
-        <p className="mt-6 text-center text-sm text-orange-400/80">{error}</p>
+        <p className="mt-6 text-center text-sm text-red-400/80">{error}</p>
       ) : null}
 
       {addingSlot ? (
@@ -306,7 +306,7 @@ function DateNav({
           type="button"
           onClick={onToday}
           disabled={disabled}
-          className="h-9 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-xs font-medium text-white/70 transition hover:border-sky-400/40 hover:bg-sky-400/[0.06] hover:text-sky-300 disabled:cursor-not-allowed disabled:opacity-30"
+          className="h-9 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-xs font-medium text-white/70 transition hover:border-white/20 hover:bg-white/[0.06] hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
         >
           Today
         </button>
@@ -403,7 +403,7 @@ function MealSection({
                   onClick={() => onRemove(e.id)}
                   disabled={busy}
                   aria-label={`Remove ${e.name}`}
-                  className="rounded-md p-1 text-white/20 opacity-0 transition hover:bg-white/5 hover:text-orange-400 group-hover:opacity-100 disabled:opacity-40"
+                  className="rounded-md p-1 text-white/20 opacity-0 transition hover:bg-white/5 hover:text-red-400 group-hover:opacity-100 disabled:opacity-40"
                 >
                   <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
                     <path d="M6 7h12M9 7V5h6v2M8 7l1 12h6l1-12" />
@@ -489,7 +489,7 @@ function AddFoodSheet({
       onClick={onClose}
     >
       <div
-        className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-t-3xl border border-white/10 bg-gray-950/95 shadow-2xl backdrop-blur-2xl sm:rounded-3xl"
+        className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-t-3xl border border-white/10 bg-black/95 shadow-2xl backdrop-blur-2xl sm:rounded-3xl"
         onClick={(ev) => ev.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
@@ -543,7 +543,7 @@ function AddFoodSheet({
                   step={0.25}
                   value={quantity}
                   onChange={(ev) => setQuantity(clampQty(Number(ev.target.value)))}
-                  className="w-24 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-center text-lg font-semibold tabular-nums text-white outline-none focus:border-sky-400/50"
+                  className="w-24 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-center text-lg font-semibold tabular-nums text-white outline-none focus:border-white/20"
                 />
                 <StepButton onClick={() => setQuantity((q) => round1(q + 0.25))} label="+" />
               </div>
@@ -561,7 +561,7 @@ function AddFoodSheet({
             <button
               onClick={() => onLog(slot, selected.id, quantity)}
               disabled={busy}
-              className="mt-6 w-full rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110 disabled:opacity-50"
+              className="mt-6 w-full rounded-xl bg-white py-3 text-sm font-semibold text-black shadow-lg transition hover:bg-white/90 disabled:opacity-50"
             >
               {busy ? "Adding…" : `Add to ${SLOT_LABELS[slot]}`}
             </button>
@@ -569,7 +569,7 @@ function AddFoodSheet({
         ) : (
           <>
             <div className="px-5 pt-4">
-              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 focus-within:border-sky-400/50">
+              <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 focus-within:border-white/20">
                 <svg viewBox="0 0 24 24" className="h-4 w-4 text-white/30" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
                   <circle cx="11" cy="11" r="7" />
                   <path d="M21 21l-4-4" />

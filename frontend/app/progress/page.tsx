@@ -51,12 +51,7 @@ function StatBadge({
   unit?: string;
   tone?: "neutral" | "good" | "warn";
 }) {
-  const vc =
-    tone === "good"
-      ? "text-emerald-400"
-      : tone === "warn"
-        ? "text-orange-400"
-        : "text-white";
+  const vc = "text-white";
   return (
     <Panel className="flex flex-col gap-1">
       <div className="text-xs font-medium uppercase tracking-wider text-white/40">
@@ -77,7 +72,7 @@ function Delta({ cm }: { cm: number }) {
   return (
     <span
       className={`ml-1 inline-block rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-        good ? "bg-emerald-400/15 text-emerald-400" : "bg-orange-400/15 text-orange-400"
+        good ? "bg-white/10 text-white" : "bg-white/[0.05] text-white/50"
       }`}
     >
       {cm > 0 ? "+" : ""}
@@ -170,15 +165,15 @@ function StepTrendChart({ data }: { data: { date: string; steps: number }[] }) {
       <svg viewBox={`0 0 ${W} ${H}`} className="h-24 w-full">
         <defs>
           <linearGradient id="stepGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgb(52,211,153)" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="rgb(52,211,153)" stopOpacity="0" />
+            <stop offset="0%" stopColor="rgba(255,255,255,0.8)" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.8)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={area} fill="url(#stepGrad)" />
         <polyline
           points={polyline}
           fill="none"
-          stroke="rgb(52,211,153)"
+          stroke="rgba(255,255,255,0.8)"
           strokeWidth="1.5"
           strokeLinejoin="round"
         />
@@ -230,7 +225,7 @@ function PRTable({ prs }: { prs: LiftPR[] }) {
                 {pr.weightKg.toFixed(1)} kg
               </td>
               <td className="py-2.5 pr-4">{pr.reps}</td>
-              <td className="py-2.5 pr-4 font-semibold text-violet-400">
+              <td className="py-2.5 pr-4 font-semibold text-white/70">
                 {pr.oneRepMax.toFixed(1)} kg
               </td>
               <td className="py-2.5 text-white/40">
@@ -277,7 +272,7 @@ function RecentLifts({ lifts }: { lifts: LiftEntry[] }) {
                 </td>
                 <td className="py-2 pr-4">{l.weightKg.toFixed(1)} kg</td>
                 <td className="py-2 pr-4">{l.reps}</td>
-                <td className="py-2 text-violet-400">
+                <td className="py-2 text-white/70">
                   {l.oneRepMax.toFixed(1)}
                 </td>
               </tr>
@@ -309,9 +304,9 @@ const CARDIO_ICON: Record<string, string> = {
 };
 
 const CARDIO_COLOR: Record<string, string> = {
-  run: "text-sky-400",
-  walk: "text-emerald-400",
-  cycle: "text-violet-400",
+  run: "text-white/70",
+  walk: "text-white/70",
+  cycle: "text-white/70",
 };
 
 function CardioLog({ entries }: { entries: CardioEntry[] }) {
@@ -397,9 +392,9 @@ function CardioLog({ entries }: { entries: CardioEntry[] }) {
 function StreakPanel({ stats }: { stats: StreakStats }) {
   const streakColor =
     stats.currentStreak >= 14
-      ? "text-emerald-400"
+      ? "text-white"
       : stats.currentStreak >= 7
-        ? "text-sky-400"
+        ? "text-white/85"
         : "text-white/70";
 
   return (
@@ -440,7 +435,7 @@ function StreakPanel({ stats }: { stats: StreakStats }) {
         <div
           className={`flex h-16 w-16 flex-col items-center justify-center rounded-2xl ${
             stats.currentStreak > 0
-              ? "bg-orange-400/10 text-orange-400"
+              ? "bg-white/10 text-white"
               : "bg-white/[0.03] text-white/20"
           }`}
         >
@@ -520,13 +515,13 @@ function MeasurementHistory({ measurements }: { measurements: Measurement[] }) {
         <polyline
           points={line}
           fill="none"
-          stroke="rgb(167,139,250)"
+          stroke="rgba(255,255,255,0.8)"
           strokeWidth="2"
           strokeLinejoin="round"
         />
         {pts.map(([x, y], i) => (
           <g key={i}>
-            <circle cx={x} cy={y} r="4" fill="rgb(167,139,250)" opacity="0.85" />
+            <circle cx={x} cy={y} r="4" fill="rgba(255,255,255,0.9)" opacity="0.85" />
             <text
               x={x}
               y={H - 4}
@@ -623,7 +618,7 @@ export default function ProgressPage() {
       </div>
 
       {error ? (
-        <div className="rounded-xl border border-orange-400/30 bg-orange-400/10 px-4 py-3 text-sm text-orange-200">
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       ) : null}

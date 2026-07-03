@@ -64,7 +64,7 @@ export function WeightTrendChart({ series }: { series: WeightPoint[] }) {
           <div className="text-2xl font-bold text-white">{last.toFixed(1)} kg</div>
           <div className="text-xs text-white/40">trend weight</div>
         </div>
-        <div className={`text-sm font-semibold ${net <= 0 ? "text-emerald-400" : "text-orange-400"}`}>
+        <div className={`text-sm font-semibold ${net <= 0 ? "text-white" : "text-white/50"}`}>
           {net > 0 ? "+" : ""}
           {net.toFixed(1)} kg
           <span className="ml-1 text-white/30">over {series.length}d</span>
@@ -73,8 +73,8 @@ export function WeightTrendChart({ series }: { series: WeightPoint[] }) {
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="none">
         <defs>
           <linearGradient id="weightArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+            <stop offset="0%" stopColor="rgba(255,255,255,0.9)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0.9)" stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -113,12 +113,12 @@ export function WeightTrendChart({ series }: { series: WeightPoint[] }) {
         <path
           d={trendPath}
           fill="none"
-          stroke="#38bdf8"
+          stroke="rgba(255,255,255,0.85)"
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <circle cx={x(series.length - 1)} cy={y(last)} r={4} className="fill-sky-400" />
+        <circle cx={x(series.length - 1)} cy={y(last)} r={4} className="fill-white/90" />
 
         <text x={pad.left} y={height - 6} className="fill-white/30" fontSize={10}>
           {fmtDate(series[0].date)}

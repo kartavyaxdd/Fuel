@@ -6,6 +6,7 @@ import foodRoutes from './routes/food';
 import weightRoutes from './routes/weight';
 import insightsRoutes from './routes/insights';
 import progressRoutes from './routes/progress';
+import goalRoutes from './routes/goal';
 import coachRoutes from './routes/coach';
 
 // Load environment variables
@@ -30,6 +31,7 @@ app.use('/api', foodRoutes);
 app.use('/api', weightRoutes);
 app.use('/api', insightsRoutes);
 app.use('/api', progressRoutes);
+app.use('/api', goalRoutes);
 app.use('/api', coachRoutes);
 
 // Health check endpoint

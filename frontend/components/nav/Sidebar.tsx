@@ -32,7 +32,7 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-white/10 bg-white/[0.02] px-4 py-6 backdrop-blur-xl lg:flex">
       <Link href="/dashboard" className="mb-8 flex items-center gap-3 px-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-indigo-500 text-sm font-bold text-white shadow-lg shadow-sky-500/20">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sm font-bold text-black">
           N
         </span>
         <span className="text-[15px] font-semibold tracking-tight text-white">
@@ -55,9 +55,9 @@ export function Sidebar() {
               ].join(" ")}
             >
               {active && (
-                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-gradient-to-b from-sky-400 to-indigo-500" />
+                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-white" />
               )}
-              <span className={active ? "text-sky-400" : "text-current"}>
+              <span className={active ? "text-white" : "text-current"}>
                 <NavIcon path={item.icon} />
               </span>
               {item.label}
@@ -68,7 +68,7 @@ export function Sidebar() {
 
       <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
         <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 text-xs font-bold text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-xs font-bold text-white">
             YOU
           </span>
           <div className="min-w-0">
@@ -86,7 +86,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-white/10 bg-gray-950/80 backdrop-blur-xl lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-white/10 bg-black/80 backdrop-blur-xl lg:hidden">
       {NAV_ITEMS.map((item) => {
         const active = isActive(pathname, item.href);
         return (
@@ -95,7 +95,7 @@ export function BottomNav() {
             href={item.href}
             className={[
               "flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors",
-              active ? "text-sky-400" : "text-white/45",
+              active ? "text-white" : "text-white/45",
             ].join(" ")}
           >
             <NavIcon path={item.icon} />

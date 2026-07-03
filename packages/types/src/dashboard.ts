@@ -53,6 +53,26 @@ export interface WeightPoint {
 
 export type GoalMode = 'fat-loss' | 'maintenance' | 'lean-bulk' | 'recomp';
 
+/** A user's persisted goal configuration, set during onboarding. */
+export interface UserGoal {
+  /** Which trajectory the user is chasing. */
+  mode: GoalMode;
+  /** Target body weight in kg. */
+  targetWeight: number;
+  /** Body weight in kg when the goal was set. */
+  startWeight: number;
+  /** ISO date the goal started, e.g. "2026-07-03". */
+  startDate: string;
+}
+
+/** Request body to set/update the active goal. */
+export interface SetGoalRequest {
+  mode: GoalMode;
+  targetWeight: number;
+  startWeight?: number;
+  startDate?: string;
+}
+
 /** The adaptive energy model's current read on the user. */
 export interface EnergyModel {
   /**

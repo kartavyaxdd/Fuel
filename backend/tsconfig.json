@@ -6,6 +6,7 @@
     "types": ["node", "jest", "express"],
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
     "baseUrl": "..",
     "paths": {
       "@nutrition/types": ["packages/types/dist/index.d.ts"]

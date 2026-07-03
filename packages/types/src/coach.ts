@@ -92,3 +92,23 @@ export interface CoachData {
   /** Reflective prompts to consider before the next check-in. */
   talkingPoints: string[];
 }
+
+/* ----------------------------------------------------------- Chat types */
+
+/** A single message in a chat session with the brutal AI coach. */
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+}
+
+/** Body sent from the frontend when the user sends a chat message. */
+export interface ChatRequest {
+  message: string;
+  /** Optional prior history so the model can maintain context. */
+  sessionHistory?: ChatMessage[];
+}
+
+/** Response returned by the backend after the coach generates a reply. */
+export interface ChatResponse {
+  reply: string;
+}

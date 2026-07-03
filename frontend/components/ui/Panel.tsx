@@ -11,7 +11,7 @@ export function Panel({
   return (
     <div
       className={
-        "rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset] backdrop-blur-xl " +
+        "rounded-2xl border border-white/[0.08] bg-white/[0.04] p-5 shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset] backdrop-blur-2xl " +
         className
       }
     >

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import type { FoodSearchResult, LogFoodRequest, MealSlot } from '@nutrition/types';
 import { MEAL_SLOTS } from '@nutrition/types';
-import { searchFoods } from '../domain/foodDb';
+import { searchFoodsLive } from '../domain/foodSearch';
 import {
   buildFoodDay,
   copyDay,
@@ -24,14 +24,16 @@ function isMealSlot(value: unknown): value is MealSlot {
 
 /**
  * GET /api/food/search?q=...&limit=...
- * Ranked search over the seed food database.
+ * Ranked search over the seed food database, merged with live results from
+ * OpenFoodFacts + USDA. Remote lookups fail soft, so this never 500s on an
+ * upstream outage — it just returns fewer items.
  */
-router.get('/food/search', (req: Request, res: Response) => {
+router.get('/food/search', async (req: Request, res: Response) => {
   try {
     const query = typeof req.query.q === 'string' ? req.query.q : '';
     const limitRaw = Number(req.query.limit);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 20;
-    const result: FoodSearchResult = { query, items: searchFoods(query, limit) };
+    const result: FoodSearchResult = { query, items: await searchFoodsLive(query, limit) };
     res.status(200).json(result);
   } catch (error) {
     console.error('Error searching foods:', error);

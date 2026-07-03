@@ -29,12 +29,7 @@ function StatCard({
   tone?: "neutral" | "good" | "warn";
   hint?: string;
 }) {
-  const toneClass =
-    tone === "good"
-      ? "text-emerald-400"
-      : tone === "warn"
-        ? "text-orange-400"
-        : "text-white";
+  const toneClass = "text-white";
   return (
     <Panel className="flex flex-col gap-1">
       <div className="text-xs font-medium uppercase tracking-wider text-white/40">
@@ -133,7 +128,7 @@ export default function WeightPage() {
     <div className="mx-auto max-w-5xl px-4 py-8 lg:py-10">
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-xs font-medium uppercase tracking-wider text-sky-400/80">
+          <div className="text-xs font-medium uppercase tracking-wider text-white/40">
             Body Composition
           </div>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-white">
@@ -211,7 +206,7 @@ export default function WeightPage() {
               value={entryDate}
               max={todayISO()}
               onChange={(e) => setEntryDate(e.target.value)}
-              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/50"
+              className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white outline-none focus:border-white/20"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs text-white/40">
@@ -223,13 +218,13 @@ export default function WeightPage() {
               placeholder="83.5"
               value={entryWeight}
               onChange={(e) => setEntryWeight(e.target.value)}
-              className="w-32 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white outline-none focus:border-sky-400/50"
+              className="w-32 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white outline-none focus:border-white/20"
             />
           </label>
           <button
             type="submit"
             disabled={busy || entryWeight.trim() === ""}
-            className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {busy ? "Saving…" : "Log weight"}
           </button>

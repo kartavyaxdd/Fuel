@@ -8,11 +8,19 @@ import { MacroBar } from "@/components/MacroBar";
 import { WeightTrendChart } from "@/components/WeightTrendChart";
 import { EnergyPanel } from "@/components/EnergyPanel";
 import { GoalPanel } from "@/components/GoalPanel";
+import { GoalSetupModal } from "@/components/GoalSetupModal";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [goalOpen, setGoalOpen] = useState(false);
+
+  function loadDashboard() {
+    return apiGet<DashboardData>("/dashboard")
+      .then(setData)
+      .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
+  }
 
   useEffect(() => {
     let alive = true;
@@ -37,13 +45,27 @@ export default function DashboardPage() {
     <div>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-sky-400">{today}</p>
+          <p className="text-sm font-medium text-white/40">{today}</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-white">
             Today
           </h1>
         </div>
-        <AdherenceBadge value={data.weeklyAdherence} />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setGoalOpen(true)}
+            className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white/80 backdrop-blur-xl transition hover:bg-white/[0.08] hover:text-white"
+          >
+            Edit goal
+          </button>
+          <AdherenceBadge value={data.weeklyAdherence} />
+        </div>
       </header>
+
+      <GoalSetupModal
+        open={goalOpen}
+        onClose={() => setGoalOpen(false)}
+        onSaved={() => loadDashboard()}
+      />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         {/* Calories + macros hero */}
@@ -110,8 +132,7 @@ export default function DashboardPage() {
 
 function AdherenceBadge({ value }: { value: number }) {
   const pct = Math.round(value * 100);
-  const tone =
-    pct >= 80 ? "text-emerald-400" : pct >= 50 ? "text-amber-400" : "text-orange-400";
+  const tone = "text-white";
   return (
     <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 backdrop-blur-xl">
       <span className="text-xs text-white/40">Weekly adherence </span>

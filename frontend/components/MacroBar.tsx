@@ -3,9 +3,9 @@
 import type { MacroTarget } from "@nutrition/types";
 
 const ACCENTS: Record<string, { from: string; to: string; text: string }> = {
-  protein: { from: "#fb923c", to: "#f97316", text: "text-orange-300" },
-  carbs: { from: "#22d3ee", to: "#0ea5e9", text: "text-cyan-300" },
-  fat: { from: "#a78bfa", to: "#8b5cf6", text: "text-violet-300" },
+  protein: { from: "rgba(255,255,255,0.9)", to: "rgba(255,255,255,0.7)", text: "text-white/85" },
+  carbs: { from: "rgba(255,255,255,0.6)", to: "rgba(255,255,255,0.45)", text: "text-white/60" },
+  fat: { from: "rgba(255,255,255,0.35)", to: "rgba(255,255,255,0.25)", text: "text-white/40" },
 };
 
 export function MacroBar({
