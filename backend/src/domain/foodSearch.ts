@@ -1,5 +1,6 @@
 import type { FoodItem } from '@nutrition/types';
 import { searchFoods as searchSeedFoods, registerFoodResolver } from './foodDb';
+import { INDIAN_FOOD_DB } from './indianFoodDb';
 
 /**
  * Live food search across the local seed DB plus two public nutrition APIs:
@@ -168,6 +169,25 @@ function dedupe(items: FoodItem[]): FoodItem[] {
  * fast); remote results fill the tail. Remote calls run in parallel and fail
  * soft — an API being down just means fewer results, never an error.
  */
+function searchIndian(query: string, limit: number): FoodItem[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return INDIAN_FOOD_DB.slice(0, limit);
+  const scored = INDIAN_FOOD_DB.map((food) => {
+    const name = food.name.toLowerCase();
+    let score = -1;
+    if (name.startsWith(q)) score = 100 - name.length;
+    else if (name.includes(q)) score = 50 - name.length;
+    return { food, score };
+  }).filter((s) => s.score > -1);
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, limit).map((s) => s.food);
+}
+
+// Register Indian foods so they can be resolved by id for logging.
+for (const item of INDIAN_FOOD_DB) {
+  REMOTE_ITEMS.set(item.id, item);
+}
+
 export async function searchFoodsLive(query: string, limit = 20): Promise<FoodItem[]> {
   const q = query.trim();
   const seed = searchSeedFoods(q, limit);
@@ -184,7 +204,8 @@ export async function searchFoodsLive(query: string, limit = 20): Promise<FoodIt
     searchUsda(q, remoteLimit),
   ]);
 
-  const merged = dedupe([...seed, ...off, ...usda]).slice(0, limit);
+  const indian = searchIndian(q, remoteLimit);
+  const merged = dedupe([...seed, ...indian, ...off, ...usda]).slice(0, limit);
 
   // Register remote items so they can be logged by id later.
   for (const item of merged) {
