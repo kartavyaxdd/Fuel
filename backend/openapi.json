@@ -1884,7 +1884,7 @@
           {
             "name": "userId",
             "in": "query",
-            "required": false,
+            "required": true,
             "schema": {
               "type": "string"
             },
@@ -2047,6 +2047,16 @@
             "type": "number",
             "nullable": true,
             "description": "Body fat percentage."
+          },
+          "neck": {
+            "type": "number",
+            "nullable": true,
+            "description": "Neck circumference in cm (for Navy BF% formula)."
+          },
+          "height": {
+            "type": "number",
+            "nullable": true,
+            "description": "Height in cm (for Navy BF% formula)."
           }
         }
       },
