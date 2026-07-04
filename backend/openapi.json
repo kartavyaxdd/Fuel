@@ -84,7 +84,7 @@
           "Food"
         ],
         "summary": "Search foods",
-        "description": "Ranked food search over the seed DB + OpenFoodFacts + USDA. Remote APIs fail soft. Returns up to `limit` matching foods.",
+        "description": "Ranked food search over the seed DB + Indian foods + OpenFoodFacts + USDA + Spoonacular. Remote APIs fail soft. Returns up to `limit` matching foods.",
         "operationId": "searchFoods",
         "parameters": [
           {

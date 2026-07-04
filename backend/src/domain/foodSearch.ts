@@ -3,9 +3,10 @@ import { searchFoods as searchSeedFoods, registerFoodResolver } from './foodDb';
 import { INDIAN_FOOD_DB } from './indianFoodDb';
 
 /**
- * Live food search across the local seed DB plus two public nutrition APIs:
+ * Live food search across the local seed DB plus three public nutrition APIs:
  *   - OpenFoodFacts (branded/packaged foods, barcode-backed, no auth)
  *   - USDA FoodData Central (generic/whole foods, free API key)
+ *   - Spoonacular (recipe/dish search, per-serving nutrition, free API key)
  *
  * Remote hits are normalized to `FoodItem` and cached so that (a) repeated
  * queries are cheap and (b) an item surfaced in search can later be logged —
@@ -14,6 +15,7 @@ import { INDIAN_FOOD_DB } from './indianFoodDb';
 
 const OFF_URL = 'https://world.openfoodfacts.org/cgi/search.pl';
 const USDA_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
+const SPOONACULAR_URL = 'https://api.spoonacular.com/recipes/complexSearch';
 const SEARCH_TTL_MS = 5 * 60 * 1000;
 const HTTP_TIMEOUT_MS = 6000;
 
@@ -151,6 +153,53 @@ async function searchUsda(query: string, limit: number): Promise<FoodItem[]> {
     .filter((x): x is FoodItem => x !== null);
 }
 
+/**
+ * Spoonacular recipe → FoodItem. Nutrition comes as a per-serving nutrient list;
+ * we model each as 1 serving (the user's quantity field = number of servings).
+ */
+function normalizeSpoonacular(recipe: Record<string, unknown>): FoodItem | null {
+  const name = (recipe.title as string) || '';
+  if (!name.trim()) return null;
+  const nutrition = (recipe.nutrition as Record<string, unknown>) || null;
+  if (!nutrition) return null;
+  const nutrients = (nutrition.nutrients ?? []) as Array<Record<string, unknown>>;
+  const pick = (needle: string): number => {
+    const hit = nutrients.find((n) =>
+      String(n.name ?? '').toLowerCase().includes(needle),
+    );
+    return hit ? num(hit.amount) : 0;
+  };
+  const calories = pick('calories');
+  if (calories <= 0) return null;
+  const id = `sp-${recipe.id}`;
+  return {
+    id,
+    name: name.trim().replace(/\s+/g, ' '),
+    source: 'database',
+    servingSize: 1,
+    servingUnit: 'serving',
+    calories: Math.round(calories),
+    protein: round(pick('protein')),
+    carbs: round(pick('carbohydrate')),
+    fat: round(pick('fat')),
+  };
+}
+
+async function searchSpoonacular(query: string, limit: number): Promise<FoodItem[]> {
+  const key = process.env.SPOONACULAR_API_KEY;
+  if (!key) return [];
+  const url =
+    `${SPOONACULAR_URL}?apiKey=${encodeURIComponent(key)}` +
+    `&query=${encodeURIComponent(query)}` +
+    `&number=${Math.min(limit, 10)}` +
+    `&addRecipeNutrition=true`;
+  const data = (await fetchJson(url)) as { results?: unknown[] } | null;
+  if (!data?.results) return [];
+  return data.results
+    .map((r) => normalizeSpoonacular(r as Record<string, unknown>))
+    .filter((x): x is FoodItem => x !== null);
+}
+
 /** Drop duplicate names, keeping the first (seed > OFF > USDA by call order). */
 function dedupe(items: FoodItem[]): FoodItem[] {
   const seen = new Set<string>();
@@ -199,17 +248,18 @@ export async function searchFoodsLive(query: string, limit = 20): Promise<FoodIt
   if (cached && cached.expires > now) return cached.items;
 
   const remoteLimit = Math.max(4, Math.ceil(limit / 2));
-  const [off, usda] = await Promise.all([
+  const [off, usda, spoon] = await Promise.all([
     searchOff(q, remoteLimit),
     searchUsda(q, remoteLimit),
+    searchSpoonacular(q, remoteLimit),
   ]);
 
   const indian = searchIndian(q, remoteLimit);
-  const merged = dedupe([...seed, ...indian, ...off, ...usda]).slice(0, limit);
+  const merged = dedupe([...seed, ...indian, ...off, ...usda, ...spoon]).slice(0, limit);
 
   // Register remote items so they can be logged by id later.
   for (const item of merged) {
-    if (item.id.startsWith('off-') || item.id.startsWith('usda-')) {
+    if (item.id.startsWith('off-') || item.id.startsWith('usda-') || item.id.startsWith('sp-')) {
       REMOTE_ITEMS.set(item.id, item);
     }
   }
