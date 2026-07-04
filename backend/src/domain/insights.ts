@@ -1,5 +1,6 @@
 import type {
   AdherenceSummary,
+  DailyCalendarEntry,
   GoalMode,
   Insight,
   InsightsData,
@@ -324,6 +325,25 @@ export function buildInsights(
   const weekAgo = trend[Math.max(0, trend.length - 8)];
   const trendDelta = last && weekAgo ? round(last.trend - weekAgo.trend, 2) : 0;
 
+  // Per-day calendar for last 90 days
+  const band = calorieTarget * 0.15;
+  const anchor = now ? now.slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const dailyCalendar: DailyCalendarEntry[] = [];
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date(`${anchor}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - i);
+    const date = d.toISOString().slice(0, 10);
+    const rec = history.find((r) => r.date === date);
+    const intake = rec?.intake ?? null;
+    let status: DailyCalendarEntry['status'] = 'unlogged';
+    if (intake != null) {
+      if (Math.abs(intake - calorieTarget) <= band) status = 'on-target';
+      else if (intake > calorieTarget) status = 'over';
+      else status = 'under';
+    }
+    dailyCalendar.push({ date, intake, target: calorieTarget, status });
+  }
+
   const base: Omit<InsightsData, 'highlights'> = {
     generatedAt: now ?? new Date().toISOString(),
     mode,
@@ -337,6 +357,7 @@ export function buildInsights(
       trendDelta,
     },
     projection,
+    dailyCalendar,
   };
 
   return { ...base, highlights: buildHighlights(base) };

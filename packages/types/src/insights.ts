@@ -61,6 +61,17 @@ export interface Insight {
   detail: string;
 }
 
+/** A single day's calorie adherence status. */
+export interface DailyCalendarEntry {
+  date: string;
+  /** kcal logged, or null if unlogged */
+  intake: number | null;
+  /** recommended target for that day */
+  target: number;
+  /** 'on-target' = within 15%, 'over' = >15% above, 'under' = >15% below, 'unlogged' */
+  status: 'on-target' | 'over' | 'under' | 'unlogged';
+}
+
 /** Full Insights payload. */
 export interface InsightsData {
   generatedAt: string;
@@ -76,4 +87,6 @@ export interface InsightsData {
   };
   projection: Projection | null;
   highlights: Insight[];
+  /** Per-day calorie adherence for the last 90 days (oldest→newest) */
+  dailyCalendar: DailyCalendarEntry[];
 }

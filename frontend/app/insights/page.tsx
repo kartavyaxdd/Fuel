@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type MouseEvent } from "react";
 import type {
+  DailyCalendarEntry,
   GoalMode,
   Insight,
   InsightsData,
@@ -186,6 +187,97 @@ function WeeklyRateChart({ weeks }: { weeks: WeekSummary[] }) {
   );
 }
 
+/* -------------------------------------------------- Adherence calendar grid */
+
+const STATUS_COLOR: Record<DailyCalendarEntry["status"], string> = {
+  "on-target": "bg-white/80",
+  over: "bg-white/25",
+  under: "bg-white/10",
+  unlogged: "bg-white/[0.04]",
+};
+
+const STATUS_LABEL: Record<DailyCalendarEntry["status"], string> = {
+  "on-target": "On target",
+  over: "Over",
+  under: "Under",
+  unlogged: "Not logged",
+};
+
+function AdherenceCalendar({ days }: { days: DailyCalendarEntry[] }) {
+  const [hovered, setHovered] = useState<DailyCalendarEntry | null>(null);
+
+  // Group into weeks (Sun→Sat rows)
+  const weeks: DailyCalendarEntry[][] = [];
+  let week: DailyCalendarEntry[] = [];
+
+  // Pad start so first day aligns to its weekday
+  if (days.length > 0) {
+    const firstDow = new Date(`${days[0].date}T00:00:00Z`).getUTCDay();
+    for (let i = 0; i < firstDow; i++) week.push({ date: "", intake: null, target: 0, status: "unlogged" });
+  }
+
+  for (const day of days) {
+    week.push(day);
+    if (week.length === 7) {
+      weeks.push(week);
+      week = [];
+    }
+  }
+  if (week.length > 0) weeks.push(week);
+
+  const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  return (
+    <div>
+      <div className="mb-3 grid grid-cols-7 gap-1 text-center">
+        {DOW.map((d) => (
+          <div key={d} className="text-[10px] uppercase tracking-wider text-white/25">{d}</div>
+        ))}
+      </div>
+      <div className="space-y-1">
+        {weeks.map((wk, wi) => (
+          <div key={wi} className="grid grid-cols-7 gap-1">
+            {wk.map((day, di) => {
+              if (!day.date) return <div key={`pad-${di}`} />;
+              const isHovered = hovered?.date === day.date;
+              return (
+                <div
+                  key={day.date}
+                  onMouseEnter={() => setHovered(day)}
+                  onMouseLeave={() => setHovered(null)}
+                  className={`relative aspect-square rounded-md transition-all ${STATUS_COLOR[day.status]} ${isHovered ? "scale-110 ring-1 ring-white/40" : ""} cursor-default`}
+                  title={`${day.date}: ${STATUS_LABEL[day.status]}${day.intake != null ? ` (${Math.round(day.intake)} kcal)` : ""}`}
+                />
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      {/* Legend */}
+      <div className="mt-3 flex flex-wrap gap-3 text-xs text-white/40">
+        {(["on-target", "over", "under", "unlogged"] as const).map((s) => (
+          <div key={s} className="flex items-center gap-1.5">
+            <span className={`inline-block h-2.5 w-2.5 rounded-sm ${STATUS_COLOR[s]}`} />
+            {STATUS_LABEL[s]}
+          </div>
+        ))}
+      </div>
+      {/* Tooltip */}
+      {hovered && hovered.date ? (
+        <div className="mt-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm">
+          <span className="font-medium text-white">{hovered.date}</span>
+          <span className="ml-2 text-white/50">{STATUS_LABEL[hovered.status]}</span>
+          {hovered.intake != null ? (
+            <span className="ml-2 text-white/40">{Math.round(hovered.intake)} / {hovered.target} kcal</span>
+          ) : (
+            <span className="ml-2 text-white/30">no log</span>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ Skeleton */
 
 function Skeleton() {
@@ -342,6 +434,15 @@ export default function InsightsPage() {
               ))}
             </div>
           ) : null}
+
+          {/* Adherence calendar */}
+          <Panel>
+            <PanelHeader
+              title="90-day adherence"
+              hint="white = on target · dim = over · dark = under · empty = unlogged"
+            />
+            <AdherenceCalendar days={data.dailyCalendar} />
+          </Panel>
 
           {/* Weekly rate chart */}
           <Panel>
