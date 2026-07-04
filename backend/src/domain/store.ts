@@ -84,7 +84,7 @@ export async function loadAll(): Promise<void> {
     console.error('[store] loadAll query failed:', error.message);
     return;
   }
-  const loaded = new Map((data ?? []).map(r => [r.key, r.value]));
+  const loaded = new Map((data ?? []).map((r: { key: string; value: unknown }) => [r.key, r.value]));
   for (const provider of providers.values()) {
     const value = loaded.get(provider.name);
     try {
