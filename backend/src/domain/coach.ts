@@ -26,6 +26,8 @@ export interface BuildCoachOptions {
   currentTarget?: number;
   /** Stamp used for `generatedAt`; injected to keep the function deterministic. */
   now?: string;
+  /** If true, today is a training day — calorie/carb/protein targets are bumped. */
+  trainingDay?: boolean;
 }
 
 /** Protein grams per kg of body weight, tuned per goal. */
@@ -69,14 +71,16 @@ function averageIntake(records: DailyRecord[]): number | null {
 /**
  * Derive recommended macros from a calorie target and the user's trend weight.
  * Protein is anchored to body weight, fat to a share of the remainder, carbs
- * fill the rest.
+ * fill the rest. Training days get extra protein + carbs.
  */
 function buildMacros(
   calories: number,
   bodyWeightKg: number,
   mode: GoalMode,
+  trainingDay = false,
 ): { protein: number; carbs: number; fat: number } {
-  const protein = Math.round(bodyWeightKg * PROTEIN_PER_KG[mode]);
+  const baseProtein = Math.round(bodyWeightKg * PROTEIN_PER_KG[mode]);
+  const protein = trainingDay ? baseProtein + 20 : baseProtein;
   const proteinKcal = protein * 4;
   const remaining = Math.max(0, calories - proteinKcal);
   const fatKcal = remaining * FAT_FRACTION[mode];
@@ -297,7 +301,7 @@ export function buildCoach(
   history: DailyRecord[],
   opts: BuildCoachOptions = {},
 ): CoachData {
-  const { mode = 'fat-loss', targetWeight = 78, currentTarget, now } = opts;
+  const { mode = 'fat-loss', targetWeight = 78, currentTarget, now, trainingDay = false } = opts;
 
   const trendPoints = computeWeightTrend(history);
   const trend: WeightPoint[] = trendPoints.map((p) => ({
@@ -308,12 +312,12 @@ export function buildCoach(
 
   const { expenditureEstimate, confidence } =
     computeAdaptiveExpenditure(history);
-  const recommended = recommendedCalorieTarget(expenditureEstimate, mode);
+  const recommended = recommendedCalorieTarget(expenditureEstimate, mode, trainingDay);
   const current = currentTarget ?? recommended;
 
   const currentWeight =
     trend.length > 0 ? trend[trend.length - 1].trend : targetWeight;
-  const macros = buildMacros(recommended, currentWeight, mode);
+  const macros = buildMacros(recommended, currentWeight, mode, trainingDay);
 
   const targets: CoachTargets = {
     current,

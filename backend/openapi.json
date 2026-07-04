@@ -940,6 +940,66 @@
         }
       }
     },
+    "/training-day": {
+      "get": {
+        "tags": ["Goal"],
+        "summary": "Get training day status",
+        "description": "Returns whether today is a training day. Training days get +250 kcal, +20g protein, more carbs.",
+        "operationId": "getTrainingDay",
+        "responses": {
+          "200": {
+            "description": "Training day status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "isTrainingDay": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Goal"],
+        "summary": "Set or toggle training day",
+        "description": "Set today as a training day or rest day. Omit body to toggle. Training day bumps calorie/protein/carb targets by ~250 kcal / 20g protein / 45g carbs.",
+        "operationId": "setTrainingDay",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isTraining": {
+                    "type": "boolean",
+                    "description": "true = training day, false = rest day. Omit to toggle."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated training day status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "isTrainingDay": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/measurements": {
       "get": {
         "tags": ["Progress"],

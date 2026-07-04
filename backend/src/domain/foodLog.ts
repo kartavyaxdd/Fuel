@@ -114,6 +114,33 @@ export function getAllLogDates(): string[] {
   return [...LOG.keys()].sort();
 }
 
+/** Top-N most frequently logged foods across all dates, sorted by count desc. */
+export function getRecentFoods(limit = 10): { foodId: string; name: string; count: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }[] {
+  const freq = new Map<string, { name: string; count: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }>();
+  for (const [date, entries] of LOG) {
+    for (const e of entries) {
+      const cur = freq.get(e.foodId);
+      if (!cur || date > cur.lastDate) {
+        freq.set(e.foodId, {
+          name: e.name,
+          count: (cur?.count ?? 0) + 1,
+          lastDate: date,
+          calories: e.calories,
+          protein: e.protein,
+          carbs: e.carbs,
+          fat: e.fat,
+        });
+      } else {
+        cur.count++;
+      }
+    }
+  }
+  return [...freq.entries()]
+    .map(([foodId, v]) => ({ foodId, ...v }))
+    .sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate))
+    .slice(0, limit);
+}
+
 export function clearAllFoodLog(): void {
   LOG.clear();
   scheduleSave();

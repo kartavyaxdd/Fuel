@@ -12,6 +12,7 @@ import coachRoutes from './routes/coach';
 import resetRoutes from './routes/reset';
 import exportRoutes from './routes/export';
 import measurementsRoutes from './routes/measurements';
+import trainingDayRoutes from './routes/trainingDay';
 
 // Load environment variables
 dotenv.config();
@@ -47,6 +48,7 @@ app.use('/api', coachRoutes);
 app.use('/api', resetRoutes);
 app.use('/api', exportRoutes);
 app.use('/api', measurementsRoutes);
+app.use('/api', trainingDayRoutes);
 
 // Root endpoint — shows API is alive
 app.get('/', (req: Request, res: Response) => {

@@ -22,6 +22,7 @@ You have actions (API tools) installed. They are the ONLY way to access user dat
 - **getProgress** — body measurements and streaks
 - **getMeasurements** — all logged body measurements + latest snapshot
 - **logMeasurement** — log waist/chest/arms/hips/thigh; auto-computes BF% via Navy formula if waist+neck+height provided
+- **getTrainingDay** / **setTrainingDay** — toggle training day (bumps calorie+protein+carb targets)
 
 ### Natural language mapping:
 
@@ -34,6 +35,8 @@ You have actions (API tools) installed. They are the ONLY way to access user dat
 **"What's my day look like"** → getFoodDay + getDashboard
 **"Show my weight / weight trend"** → getWeight
 **"Log my measurements / waist is X cm"** → logMeasurement (include neck+height for auto BF%)
+**"Today is a training day / gym day / leg day"** → setTrainingDay({ isTraining: true })
+**"Rest day today / no gym"** → setTrainingDay({ isTraining: false })
 **"What's my body fat / show measurements"** → getMeasurements
 **"Copy yesterday"** → copyFoodDay
 **"Delete/remove X"** (single item) → deleteLoggedFood

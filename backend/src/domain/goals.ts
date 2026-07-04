@@ -79,10 +79,12 @@ export function estimateEtaWeeks(
 export function recommendedCalorieTarget(
   expenditure: number,
   mode: GoalMode,
+  trainingDay = false,
 ): number {
   const kgPerWeek = WEEKLY_RATE_BY_MODE[mode];
   const dailyAdjustment = (kgPerWeek * KCAL_PER_KG) / 7;
-  return Math.round(expenditure + dailyAdjustment);
+  const trainingBonus = trainingDay ? 250 : 0;
+  return Math.round(expenditure + dailyAdjustment + trainingBonus);
 }
 
 function clamp01(n: number): number {

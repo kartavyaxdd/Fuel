@@ -8,6 +8,7 @@ import {
   copyDay,
   deleteLoggedFood,
   logFood,
+  getRecentFoods,
 } from '../domain/foodLog';
 import { DEMO_ANCHOR_DATE } from '../domain/sampleData';
 
@@ -32,6 +33,21 @@ router.get('/food/search', async (req: Request, res: Response) => {
     res.status(200).json(result);
   } catch (error) {
     console.error('Error searching foods:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/food/recent?limit=N
+ * Returns top-N most frequently logged foods across all dates.
+ */
+router.get('/food/recent', (req: Request, res: Response) => {
+  try {
+    const limitRaw = Number(req.query.limit);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 10;
+    res.status(200).json({ items: getRecentFoods(limit) });
+  } catch (error) {
+    console.error('Error getting recent foods:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { DashboardData } from "@nutrition/types";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 import { CalorieRing } from "@/components/CalorieRing";
 import { MacroBar } from "@/components/MacroBar";
 import { WeightTrendChart } from "@/components/WeightTrendChart";
@@ -15,6 +15,8 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [goalOpen, setGoalOpen] = useState(false);
+  const [isTrainingDay, setIsTrainingDay] = useState(false);
+  const [trainingToggling, setTrainingToggling] = useState(false);
 
   function loadDashboard() {
     return apiGet<DashboardData>("/dashboard")
@@ -22,10 +24,28 @@ export default function DashboardPage() {
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load"));
   }
 
+  async function toggleTrainingDay() {
+    setTrainingToggling(true);
+    try {
+      const result = await apiPost<{ isTrainingDay: boolean }>("/training-day", {});
+      setIsTrainingDay(result.isTrainingDay);
+      loadDashboard(); // refresh targets
+    } finally {
+      setTrainingToggling(false);
+    }
+  }
+
   useEffect(() => {
     let alive = true;
-    apiGet<DashboardData>("/dashboard")
-      .then((d) => alive && setData(d))
+    Promise.all([
+      apiGet<DashboardData>("/dashboard"),
+      apiGet<{ isTrainingDay: boolean }>("/training-day"),
+    ])
+      .then(([d, t]) => {
+        if (!alive) return;
+        setData(d);
+        setIsTrainingDay(t.isTrainingDay);
+      })
       .catch((e) => alive && setError(e instanceof Error ? e.message : "Failed to load"));
     return () => {
       alive = false;
@@ -51,6 +71,17 @@ export default function DashboardPage() {
           </h1>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={toggleTrainingDay}
+            disabled={trainingToggling}
+            className={`rounded-full border px-4 py-2 text-sm font-semibold backdrop-blur-xl transition ${
+              isTrainingDay
+                ? "border-white/30 bg-white text-black hover:bg-white/90"
+                : "border-white/10 bg-white/[0.03] text-white/60 hover:bg-white/[0.08] hover:text-white"
+            }`}
+          >
+            {isTrainingDay ? "Training day" : "Rest day"}
+          </button>
           <button
             onClick={() => setGoalOpen(true)}
             className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white/80 backdrop-blur-xl transition hover:bg-white/[0.08] hover:text-white"

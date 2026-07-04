@@ -9,7 +9,7 @@ import type {
   ProgressData,
   StreakStats,
 } from "@nutrition/types";
-import { apiGet } from "@/lib/api";
+import { apiGet, apiPost } from "@/lib/api";
 import { Panel, PanelHeader } from "@/components/ui/Panel";
 
 /* -------------------------------------------------------------------------- */
@@ -460,80 +460,84 @@ function StreakPanel({ stats }: { stats: StreakStats }) {
 function MeasurementHistory({ measurements }: { measurements: Measurement[] }) {
   if (measurements.length < 2) return null;
 
-  const W = 600;
-  const H = 120;
-  const pad = { t: 10, r: 40, b: 22, l: 40 };
-  const innerW = W - pad.l - pad.r;
-  const innerH = H - pad.t - pad.b;
+  const hasBF = measurements.some((m) => m.bodyFat != null);
 
-  // Plot waist only for simplicity — most important proxy
-  const vals = measurements.map((m) => m.waist ?? 0);
-  const minV = Math.min(...vals) - 1;
-  const maxV = Math.max(...vals) + 1;
-
-  const scaleX = (i: number) =>
-    pad.l + (i / (measurements.length - 1)) * innerW;
-  const scaleY = (v: number) =>
-    pad.t + (1 - (v - minV) / (maxV - minV)) * innerH;
-
-  const pts = measurements.map((m, i) =>
-    [scaleX(i), scaleY(m.waist ?? 0)] as [number, number]
-  );
-
-  const line = pts.map(([x, y]) => `${x},${y}`).join(" ");
+  function MiniChart({
+    values,
+    label,
+    unit,
+    colorStroke,
+  }: {
+    values: (number | null)[];
+    label: string;
+    unit: string;
+    colorStroke: string;
+  }) {
+    const valid = values.filter((v): v is number => v != null);
+    if (valid.length < 2) return null;
+    const W = 600;
+    const H = 100;
+    const pad = { t: 8, r: 40, b: 20, l: 40 };
+    const innerW = W - pad.l - pad.r;
+    const innerH = H - pad.t - pad.b;
+    const minV = Math.min(...valid) - 1;
+    const maxV = Math.max(...valid) + 1;
+    const scaleX = (i: number) =>
+      pad.l + (i / (values.length - 1)) * innerW;
+    const scaleY = (v: number) =>
+      pad.t + (1 - (v - minV) / (maxV - minV)) * innerH;
+    const pts = values.map((v, i) =>
+      v != null ? ([scaleX(i), scaleY(v)] as [number, number]) : null
+    );
+    const validPts = pts.filter((p): p is [number, number] => p != null);
+    const line = validPts.map(([x, y]) => `${x},${y}`).join(" ");
+    return (
+      <div>
+        <div className="mb-1 text-xs uppercase tracking-wider text-white/35">{label}</div>
+        <svg viewBox={`0 0 ${W} ${H}`} className="h-24 w-full">
+          {[minV, (minV + maxV) / 2, maxV].map((v) => {
+            const y = scaleY(v);
+            return (
+              <g key={v}>
+                <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                <text x={pad.l - 4} y={y + 3} textAnchor="end" fontSize="9" className="fill-white/30">
+                  {v.toFixed(0)}{unit}
+                </text>
+              </g>
+            );
+          })}
+          <polyline points={line} fill="none" stroke={colorStroke} strokeWidth="2" strokeLinejoin="round" />
+          {pts.map((p, i) =>
+            p ? (
+              <g key={i}>
+                <circle cx={p[0]} cy={p[1]} r="4" fill={colorStroke} opacity="0.85" />
+                <text x={p[0]} y={H - 3} textAnchor="middle" fontSize="9" className="fill-white/30">
+                  {fmtDateShort(measurements[i].date)}
+                </text>
+              </g>
+            ) : null
+          )}
+        </svg>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div className="mb-1 text-xs uppercase tracking-wider text-white/35">
-        Waist trend
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-28 w-full">
-        {[minV, (minV + maxV) / 2, maxV].map((v) => {
-          const y = scaleY(v);
-          return (
-            <g key={v}>
-              <line
-                x1={pad.l}
-                y1={y}
-                x2={W - pad.r}
-                y2={y}
-                stroke="rgba(255,255,255,0.06)"
-                strokeWidth="1"
-              />
-              <text
-                x={pad.l - 4}
-                y={y + 3}
-                textAnchor="end"
-                fontSize="9"
-                className="fill-white/30"
-              >
-                {v.toFixed(0)}
-              </text>
-            </g>
-          );
-        })}
-        <polyline
-          points={line}
-          fill="none"
-          stroke="rgba(255,255,255,0.8)"
-          strokeWidth="2"
-          strokeLinejoin="round"
+    <div className="space-y-6">
+      <MiniChart
+        values={measurements.map((m) => m.waist)}
+        label="Waist (cm)"
+        unit=""
+        colorStroke="rgba(255,255,255,0.85)"
+      />
+      {hasBF ? (
+        <MiniChart
+          values={measurements.map((m) => m.bodyFat)}
+          label="Body fat %"
+          unit="%"
+          colorStroke="rgba(255,255,255,0.5)"
         />
-        {pts.map(([x, y], i) => (
-          <g key={i}>
-            <circle cx={x} cy={y} r="4" fill="rgba(255,255,255,0.9)" opacity="0.85" />
-            <text
-              x={x}
-              y={H - 4}
-              textAnchor="middle"
-              fontSize="9"
-              className="fill-white/30"
-            >
-              {fmtDateShort(measurements[i].date)}
-            </text>
-          </g>
-        ))}
-      </svg>
+      ) : null}
     </div>
   );
 }
@@ -560,10 +564,26 @@ function Skeleton() {
 /* Page                                                                         */
 /* -------------------------------------------------------------------------- */
 
+interface MeasurementForm {
+  waist: string;
+  hips: string;
+  chest: string;
+  armLeft: string;
+  neck: string;
+  height: string;
+}
+
+const EMPTY_FORM: MeasurementForm = {
+  waist: "", hips: "", chest: "", armLeft: "", neck: "", height: "",
+};
+
 export default function ProgressPage() {
   const [data, setData] = useState<ProgressData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState<MeasurementForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -577,6 +597,28 @@ export default function ProgressPage() {
       setLoading(false);
     }
   }, []);
+
+  async function saveMeasurement(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const body: Record<string, number> = {};
+      if (form.waist) body.waist = parseFloat(form.waist);
+      if (form.hips) body.hips = parseFloat(form.hips);
+      if (form.chest) body.chest = parseFloat(form.chest);
+      if (form.armLeft) body.armLeft = parseFloat(form.armLeft);
+      if (form.neck) body.neck = parseFloat(form.neck);
+      if (form.height) body.height = parseFloat(form.height);
+      await apiPost("/measurements", body);
+      setForm(EMPTY_FORM);
+      setFormOpen(false);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   useEffect(() => {
     load();
@@ -625,6 +667,56 @@ export default function ProgressPage() {
 
       {data ? (
         <>
+          {/* ── Log measurement ── */}
+          <Panel>
+            <div className="flex items-center justify-between">
+              <PanelHeader title="Body measurements" hint="Track waist, hips, chest, arms" />
+              <button
+                type="button"
+                onClick={() => setFormOpen((v) => !v)}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white/70 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                {formOpen ? "Cancel" : "+ Log"}
+              </button>
+            </div>
+            {formOpen ? (
+              <form onSubmit={saveMeasurement} className="mt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {(
+                    [
+                      { key: "waist", label: "Waist (cm)" },
+                      { key: "hips", label: "Hips (cm)" },
+                      { key: "chest", label: "Chest (cm)" },
+                      { key: "armLeft", label: "Arm (cm)" },
+                      { key: "neck", label: "Neck (cm) *" },
+                      { key: "height", label: "Height (cm) *" },
+                    ] as { key: keyof MeasurementForm; label: string }[]
+                  ).map(({ key, label }) => (
+                    <div key={key}>
+                      <label className="block text-xs text-white/40 mb-1">{label}</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={form[key]}
+                        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                        placeholder="—"
+                        className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-white/20 outline-none focus:border-white/25 focus:ring-0"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-white/30">* Neck + Height auto-calculate BF% via Navy formula</p>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-black transition hover:bg-white/90 disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : "Save measurements"}
+                </button>
+              </form>
+            ) : null}
+          </Panel>
+
           {/* ── Streak panel ── */}
           <Panel>
             <PanelHeader title="Activity streaks" />

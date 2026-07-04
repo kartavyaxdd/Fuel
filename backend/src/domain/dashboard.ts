@@ -15,6 +15,7 @@ import { getGoal } from './userGoal';
 import { getDayMeals } from './foodLog';
 import { buildDailyRecords } from './dailyRecords';
 import { DEMO_ANCHOR_DATE } from './sampleData';
+import { isTrainingDay } from './trainingDay';
 
 /** Macro split (fraction of calories) targeted per gram type. */
 const PROTEIN_KCAL_PER_G = 4;
@@ -71,7 +72,7 @@ export function buildDashboard(
   const weekAgo = weightSeries[Math.max(0, weightSeries.length - 8)];
   const trendDelta = last && weekAgo ? round(last.trend - weekAgo.trend, 2) : 0;
 
-  const calorieTarget = recommendedCalorieTarget(expenditureEstimate, mode);
+  const calorieTarget = recommendedCalorieTarget(expenditureEstimate, mode, isTrainingDay());
 
   // Today's consumed values from the actual food log.
   const meals = todaysMeals();

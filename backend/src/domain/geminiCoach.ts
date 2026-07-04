@@ -10,6 +10,7 @@ import { buildDailyRecords } from './dailyRecords';
 import { DEMO_ANCHOR_DATE } from './sampleData';
 import { estimateEtaWeeks } from './goals';
 import { getLatestMeasurement } from './measurements';
+import { isTrainingDay } from './trainingDay';
 
 const MODEL_NAME = 'gemini-2.5-flash';
 
@@ -193,6 +194,8 @@ Energy balance:          ${ctx.energyBalance != null ? (ctx.energyBalance > 0 ? 
 7-day weight trend:      ${ctx.weightTrendDelta > 0 ? '+' : ''}${ctx.weightTrendDelta.toFixed(2)} kg
 Adherence (7d):          ${adherencePct}%
 Model confidence:        ${Math.round(ctx.confidence * 100)}%
+
+TODAY: ${isTrainingDay() ? '🏋️ TRAINING DAY — targets are elevated (+250 kcal, +20g protein, more carbs)' : '😴 REST DAY — standard targets'}
 
 RECOMMENDED TARGETS:
   Calories: ${ctx.recommended} kcal/day
