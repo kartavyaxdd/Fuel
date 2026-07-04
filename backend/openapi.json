@@ -1814,9 +1814,25 @@
           "User"
         ],
         "summary": "Register a new user",
-        "description": "Creates a new user ID (UUID). Store this ID and send it as X-User-Id header on all subsequent requests.",
+        "description": "Creates a new user. Pass an optional username so you can recover this user in a new chat by name.",
         "operationId": "registerUser",
         "parameters": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "Optional username for cross-chat recovery. Must be 2+ characters."
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "New user created",
@@ -1832,7 +1848,11 @@
                     "userId": {
                       "type": "string",
                       "format": "uuid",
-                      "description": "Unique user identifier. Send as X-User-Id header on all requests."
+                      "description": "Unique user identifier. Send as ?userId=xxx on all requests."
+                    },
+                    "username": {
+                      "type": "string",
+                      "description": "The username, if one was provided."
                     },
                     "createdAt": {
                       "type": "string",
@@ -1842,6 +1862,9 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Username already taken"
           },
           "500": {
             "$ref": "#/components/responses/Error"
@@ -1854,8 +1877,8 @@
         "tags": [
           "User"
         ],
-        "summary": "Get current user info",
-        "description": "Returns user info for the authenticated user. Requires X-User-Id header.",
+        "summary": "Get user info by userId",
+        "description": "Returns user info for a given userId query param.",
         "operationId": "getUser",
         "parameters": [
           {
@@ -1901,6 +1924,66 @@
           },
           "500": {
             "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/user/lookup": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Find userId by username",
+        "description": "Looks up a user by their chosen username. Use this when a user returns in a new chat and says 'it's me, X'.",
+        "operationId": "lookupUser",
+        "parameters": [
+          {
+            "name": "username",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 2
+            },
+            "description": "The username chosen at registration."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "userId",
+                    "username",
+                    "createdAt"
+                  ],
+                  "properties": {
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "The user's internal ID. Use this as ?userId=xxx on all requests."
+                    },
+                    "username": {
+                      "type": "string",
+                      "description": "The username."
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid username"
+          },
+          "404": {
+            "description": "Username not found"
           }
         }
       }
