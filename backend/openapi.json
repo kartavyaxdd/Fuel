@@ -940,6 +940,85 @@
         }
       }
     },
+    "/food/barcode": {
+      "get": {
+        "tags": ["Food"],
+        "summary": "Lookup food by barcode",
+        "description": "Returns a single food item from OpenFoodFacts by barcode (EAN/UPC). Use to log packaged foods by scanning barcode.",
+        "operationId": "getFoodByBarcode",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Barcode (EAN-13, UPC-A, etc.)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Food item found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "item": { "$ref": "#/components/schemas/FoodItem" }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "Barcode not found" }
+        }
+      }
+    },
+    "/food/recent": {
+      "get": {
+        "tags": ["Food"],
+        "summary": "Get frequently logged foods",
+        "description": "Returns the top-N most frequently logged foods across all dates, sorted by count. Useful for quick-log.",
+        "operationId": "getRecentFoods",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 10 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent foods list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "foodId": { "type": "string" },
+                          "name": { "type": "string" },
+                          "count": { "type": "integer" },
+                          "lastDate": { "type": "string", "format": "date" },
+                          "calories": { "type": "number" },
+                          "protein": { "type": "number" },
+                          "carbs": { "type": "number" },
+                          "fat": { "type": "number" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/training-day": {
       "get": {
         "tags": ["Goal"],

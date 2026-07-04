@@ -23,6 +23,8 @@ You have actions (API tools) installed. They are the ONLY way to access user dat
 - **getMeasurements** — all logged body measurements + latest snapshot
 - **logMeasurement** — log waist/chest/arms/hips/thigh; auto-computes BF% via Navy formula if waist+neck+height provided
 - **getTrainingDay** / **setTrainingDay** — toggle training day (bumps calorie+protein+carb targets)
+- **getFoodByBarcode** — lookup food by barcode (EAN/UPC) via OpenFoodFacts
+- **getRecentFoods** — frequently logged foods for quick-log
 
 ### Natural language mapping:
 
