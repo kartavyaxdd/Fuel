@@ -433,6 +433,33 @@ interface RecentFood {
   fat: number;
 }
 
+interface PhotoMatch {
+  id: string;
+  name: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  servingSize: number;
+  servingUnit: string;
+}
+
+interface PhotoItem {
+  name: string;
+  estimatedCalories: number;
+  estimatedProtein: number;
+  estimatedCarbs: number;
+  estimatedFat: number;
+  servingSize: string;
+  confidence: number;
+  matches: PhotoMatch[];
+}
+
+interface PhotoAnalysisResponse {
+  items: PhotoItem[];
+  slot: string | null;
+}
+
 function AddFoodSheet({
   slot,
   busy,
@@ -450,7 +477,10 @@ function AddFoodSheet({
   const [selected, setSelected] = useState<FoodItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [recentFoods, setRecentFoods] = useState<RecentFood[]>([]);
+  const [photos, setPhotos] = useState<PhotoItem[] | null>(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -488,6 +518,41 @@ function AddFoodSheet({
     };
   }, [query]);
 
+  const handleFile = useCallback(async (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    setPhotoLoading(true);
+    setPhotos(null);
+    try {
+      const reader = new FileReader();
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const response = await apiPost<PhotoAnalysisResponse>("/food/analyze-photo", {
+        image: dataUrl,
+        slot,
+      });
+      setPhotos(response.items);
+    } catch {
+      setPhotos([]);
+    } finally {
+      setPhotoLoading(false);
+      if (ev.target) ev.target.value = "";
+    }
+  }, [slot]);
+
+  const logPhotoItem = useCallback(async (item: PhotoItem, match?: PhotoMatch) => {
+    const foodId = match?.id;
+    if (!foodId) {
+      const errMsg = `Photo-${item.name.replace(/\s+/g, "-").toLowerCase()}`;
+      onLog(slot, errMsg, 1);
+      return;
+    }
+    onLog(slot, foodId, 1);
+  }, [slot, onLog]);
+
   const preview = useMemo(() => {
     if (!selected) return null;
     return {
@@ -513,7 +578,7 @@ function AddFoodSheet({
               Add to {SLOT_LABELS[slot]}
             </p>
             <h3 className="text-lg font-semibold text-white">
-              {selected ? selected.name : "Search foods"}
+              {selected ? selected.name : photos ? "Photo analysis" : "Search foods"}
             </h3>
           </div>
           <button
@@ -581,11 +646,74 @@ function AddFoodSheet({
               {busy ? "Adding…" : `Add to ${SLOT_LABELS[slot]}`}
             </button>
           </div>
+        ) : photos ? (
+          <div className="max-h-[65vh] overflow-y-auto p-3">
+            {photos.length === 0 ? (
+              <div className="py-12 text-center text-sm text-white/30">
+                Could not identify any food in that photo. Try a clearer shot.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {photos.map((item, i) => (
+                  <div key={i} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <div className="flex items-start justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-white">{item.name}</span>
+                          <span className="text-[10px] text-white/30">
+                            {Math.round(item.confidence * 100)}%
+                          </span>
+                        </div>
+                        <div className="mt-0.5 text-xs text-white/40">{item.servingSize}</div>
+                        <div className="mt-1 flex gap-3 text-xs text-white/50">
+                          <span>{Math.round(item.estimatedCalories)} kcal</span>
+                          <span>{Math.round(item.estimatedProtein)}p</span>
+                          <span>{Math.round(item.estimatedCarbs)}c</span>
+                          <span>{Math.round(item.estimatedFat)}f</span>
+                        </div>
+                      </div>
+                    </div>
+                    {item.matches.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-[10px] uppercase tracking-wider text-white/20">Match from database</p>
+                        {item.matches.map((m) => (
+                          <button
+                            key={m.id}
+                            onClick={() => logPhotoItem(item, m)}
+                            disabled={busy}
+                            className="flex w-full items-center justify-between rounded-lg bg-white/[0.04] px-2.5 py-1.5 text-left text-xs transition hover:bg-white/[0.08] disabled:opacity-50"
+                          >
+                            <span className="truncate text-white/70">{m.name}</span>
+                            <span className="shrink-0 text-white/50">
+                              {m.calories} kcal · {m.servingSize}{m.servingUnit}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <button
+                      onClick={() => logPhotoItem(item)}
+                      disabled={busy}
+                      className="mt-2 w-full rounded-lg bg-white/10 py-2 text-xs font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
+                    >
+                      Log estimated macros
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setPhotos(null)}
+                  className="w-full py-2 text-center text-xs text-white/40 transition hover:text-white/70"
+                >
+                  Try another photo
+                </button>
+              </div>
+            )}
+          </div>
         ) : (
           <>
             <div className="px-5 pt-4">
               <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5 focus-within:border-white/20">
-                <svg viewBox="0 0 24 24" className="h-4 w-4 text-white/30" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
+                <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 text-white/30" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round">
                   <circle cx="11" cy="11" r="7" />
                   <path d="M21 21l-4-4" />
                 </svg>
@@ -596,11 +724,37 @@ function AddFoodSheet({
                   placeholder="Search chicken, oats, whey…"
                   className="w-full bg-transparent text-sm text-white placeholder:text-white/30 outline-none"
                 />
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={photoLoading}
+                  className="shrink-0 rounded-lg p-1.5 text-white/40 transition hover:bg-white/10 hover:text-white disabled:opacity-30"
+                  aria-label="Analyze food photo"
+                >
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="13" r="4" />
+                  </svg>
+                </button>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFile}
+                  className="hidden"
+                />
               </div>
             </div>
 
             <div className="max-h-[55vh] overflow-y-auto p-3">
-              {loading ? (
+              {photoLoading ? (
+                <div className="space-y-3 p-2">
+                  <div className="h-4 w-24 animate-pulse rounded bg-white/10" />
+                  {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="h-24 animate-pulse rounded-xl bg-white/5" />
+                  ))}
+                </div>
+              ) : loading ? (
                 <div className="space-y-2 p-2">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <div key={i} className="h-14 animate-pulse rounded-xl bg-white/5" />
@@ -652,11 +806,11 @@ function AddFoodSheet({
                         </li>
                       ))}
                     </ul>
-                    <p className="mt-3 px-2 text-xs text-white/20">Or search above for more foods</p>
+                    <p className="mt-3 px-2 text-xs text-white/20">Or search or snap a photo above</p>
                   </div>
                 ) : (
                   <div className="py-12 text-center text-sm text-white/30">
-                    Start typing to search the food database.
+                    Start typing or snap a photo above.
                   </div>
                 )
               ) : (

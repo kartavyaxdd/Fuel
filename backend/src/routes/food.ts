@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import type { FoodSearchResult, LogFoodRequest, MealSlot } from '@nutrition/types';
 import { MEAL_SLOTS } from '@nutrition/types';
 import { searchFoodsLive } from '../domain/foodSearch';
+import { analyzeFoodPhoto } from '../domain/geminiCoach';
 import {
   buildFoodDay,
   clearDay,
@@ -93,6 +94,62 @@ router.get('/food/recent', (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error getting recent foods:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * POST /api/food/analyze-photo
+ * Body: { image: "data:image/jpeg;base64,...", slot?: "lunch" }
+ * Uses Gemini Vision to identify foods in a photo and estimate macros.
+ * Returns identified foods plus closest DB matches for logging.
+ */
+router.post('/food/analyze-photo', async (req: Request, res: Response) => {
+  try {
+    const { image, slot } = req.body ?? {};
+    if (!image || typeof image !== 'string') {
+      res.status(400).json({ error: 'image (base64 data URL) is required' });
+      return;
+    }
+    const match = image.match(/^data:(image\/(png|jpeg|webp));base64,(.+)$/);
+    if (!match) {
+      res.status(400).json({ error: 'Invalid image format. Use a base64 data URL (image/png, image/jpeg, or image/webp).' });
+      return;
+    }
+    const mimeType = match[1];
+    const base64Data = match[3];
+
+    const analysis = await analyzeFoodPhoto(base64Data, mimeType);
+
+    // Find closest DB match for each identified food
+    const items = await Promise.all(
+      analysis.foods.map(async (food) => {
+        const results = await searchFoodsLive(food.name, 5);
+        return {
+          name: food.name,
+          estimatedCalories: food.estimatedCalories,
+          estimatedProtein: food.estimatedProtein,
+          estimatedCarbs: food.estimatedCarbs,
+          estimatedFat: food.estimatedFat,
+          servingSize: food.servingSize,
+          confidence: food.confidence,
+          matches: results.slice(0, 3).map((r) => ({
+            id: r.id,
+            name: r.name,
+            calories: r.calories,
+            protein: r.protein,
+            carbs: r.carbs,
+            fat: r.fat,
+            servingSize: r.servingSize,
+            servingUnit: r.servingUnit,
+          })),
+        };
+      }),
+    );
+
+    res.json({ items, slot: slot ?? null });
+  } catch (error) {
+    console.error('Photo analysis error:', error);
+    res.status(500).json({ error: 'Photo analysis failed' });
   }
 });
 

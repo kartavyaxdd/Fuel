@@ -35,6 +35,79 @@ export function isCoachEnabled(): boolean {
   return model != null && key != null && key.length > 0;
 }
 
+/* ------------------------------------------------------- Photo food analysis */
+
+export interface IdentifiedFood {
+  name: string;
+  estimatedCalories: number;
+  estimatedProtein: number;
+  estimatedCarbs: number;
+  estimatedFat: number;
+  servingSize: string;
+  confidence: number;
+}
+
+export interface PhotoAnalysisResult {
+  foods: IdentifiedFood[];
+}
+
+function extractJson(text: string): IdentifiedFood[] {
+  const trimmed = text.trim();
+  let json = trimmed;
+  const blockMatch = trimmed.match(/```(?:json)?\s*(\[[\s\S]*?\])\s*```/);
+  if (blockMatch) json = blockMatch[1];
+  try {
+    const parsed = JSON.parse(json);
+    if (Array.isArray(parsed)) return parsed as IdentifiedFood[];
+    if (parsed && typeof parsed === 'object' && 'foods' in parsed) return (parsed as { foods: IdentifiedFood[] }).foods;
+    return [];
+  } catch {
+    const arrMatch = json.match(/\[[\s\S]*\]/);
+    if (arrMatch) {
+      try { return JSON.parse(arrMatch[0]) as IdentifiedFood[]; } catch { return []; }
+    }
+    return [];
+  }
+}
+
+export async function analyzeFoodPhoto(
+  imageBase64: string,
+  mimeType: string,
+): Promise<PhotoAnalysisResult> {
+  initGemini();
+  if (!model) throw new Error('Gemini not available. Set GEMINI_API_KEY.');
+
+  const prompt = `You are a food identification AI. Analyze this food image carefully.
+
+For each distinct food item visible in the image, return a JSON array with:
+- name: the food name (e.g. "Grilled chicken breast")
+- estimatedCalories: kcal per typical single serving
+- estimatedProtein: grams per serving
+- estimatedCarbs: grams per serving
+- estimatedFat: grams per serving
+- servingSize: human-readable description (e.g. "150g", "1 cup", "1 piece")
+- confidence: 0.0 to 1.0
+
+Rules:
+- Use realistic macro data from standard nutrition references
+- Be conservative with portion estimates — slightly under rather than over
+- If a dish has multiple components list each separately
+- If you cannot identify something omit it
+- Return ONLY valid JSON with no markdown no explanation
+
+Example:
+[{"name":"Grilled chicken breast","estimatedCalories":165,"estimatedProtein":31,"estimatedCarbs":0,"estimatedFat":3.6,"servingSize":"150g","confidence":0.95}]`;
+
+  const parts: Part[] = [
+    { text: prompt },
+    { inlineData: { mimeType, data: imageBase64 } },
+  ];
+
+  const result = await model.generateContent(parts);
+  const text = result.response.text();
+  return { foods: extractJson(text) };
+}
+
 /* ------------------------------------------------------------------ Helpers */
 
 /** Return demo "today" date — same as the food log's demo anchor. */

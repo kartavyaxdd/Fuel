@@ -78,6 +78,91 @@
         }
       }
     },
+    "/food/analyze-photo": {
+      "post": {
+        "tags": ["Food"],
+        "summary": "Analyze food photo with AI",
+        "description": "Upload a food photo (base64 data URL) — Gemini Vision identifies food items and estimates macros. Returns identified foods with closest DB matches for logging.",
+        "operationId": "analyzeFoodPhoto",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["image"],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "description": "Base64 data URL of the food photo (e.g. data:image/jpeg;base64,...)."
+                  },
+                  "slot": {
+                    "$ref": "#/components/schemas/MealSlot",
+                    "description": "Optional meal slot to pre-select for logging."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Photo analysis result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items", "slot"],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": ["name", "estimatedCalories", "estimatedProtein", "estimatedCarbs", "estimatedFat", "servingSize", "confidence", "matches"],
+                        "properties": {
+                          "name": { "type": "string" },
+                          "estimatedCalories": { "type": "number" },
+                          "estimatedProtein": { "type": "number" },
+                          "estimatedCarbs": { "type": "number" },
+                          "estimatedFat": { "type": "number" },
+                          "servingSize": { "type": "string" },
+                          "confidence": { "type": "number" },
+                          "matches": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": { "type": "string" },
+                                "name": { "type": "string" },
+                                "calories": { "type": "number" },
+                                "protein": { "type": "number" },
+                                "carbs": { "type": "number" },
+                                "fat": { "type": "number" },
+                                "servingSize": { "type": "number" },
+                                "servingUnit": { "type": "string" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "slot": { "type": "string", "nullable": true }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid image format",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "500": {
+            "description": "Analysis failed",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
     "/food/search": {
       "get": {
         "tags": [

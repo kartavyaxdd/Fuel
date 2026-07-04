@@ -25,6 +25,7 @@ You have actions (API tools) installed. They are the ONLY way to access user dat
 - **getTrainingDay** / **setTrainingDay** — toggle training day (bumps calorie+protein+carb targets)
 - **getFoodByBarcode** — lookup food by barcode (EAN/UPC) via OpenFoodFacts
 - **getRecentFoods** — frequently logged foods for quick-log
+- **analyzeFoodPhoto** — send a photo of a meal (base64 data URL) → AI identifies foods + estimates macros
 
 ### Natural language mapping:
 
