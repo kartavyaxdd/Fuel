@@ -79,12 +79,26 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/food/analyze-photo": {
       "post": {
-        "tags": ["Food"],
+        "tags": [
+          "Food"
+        ],
         "summary": "Analyze food photo with AI",
         "description": "Upload a food photo (base64 data URL) — Gemini Vision identifies food items and estimates macros. Returns identified foods with closest DB matches for logging.",
         "operationId": "analyzeFoodPhoto",
@@ -94,7 +108,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["image"],
+                "required": [
+                  "image"
+                ],
                 "properties": {
                   "image": {
                     "type": "string",
@@ -116,41 +132,86 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["items", "slot"],
+                  "required": [
+                    "items",
+                    "slot"
+                  ],
                   "properties": {
                     "items": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["name", "estimatedCalories", "estimatedProtein", "estimatedCarbs", "estimatedFat", "servingSize", "confidence", "matches"],
+                        "required": [
+                          "name",
+                          "estimatedCalories",
+                          "estimatedProtein",
+                          "estimatedCarbs",
+                          "estimatedFat",
+                          "servingSize",
+                          "confidence",
+                          "matches"
+                        ],
                         "properties": {
-                          "name": { "type": "string" },
-                          "estimatedCalories": { "type": "number" },
-                          "estimatedProtein": { "type": "number" },
-                          "estimatedCarbs": { "type": "number" },
-                          "estimatedFat": { "type": "number" },
-                          "servingSize": { "type": "string" },
-                          "confidence": { "type": "number" },
+                          "name": {
+                            "type": "string"
+                          },
+                          "estimatedCalories": {
+                            "type": "number"
+                          },
+                          "estimatedProtein": {
+                            "type": "number"
+                          },
+                          "estimatedCarbs": {
+                            "type": "number"
+                          },
+                          "estimatedFat": {
+                            "type": "number"
+                          },
+                          "servingSize": {
+                            "type": "string"
+                          },
+                          "confidence": {
+                            "type": "number"
+                          },
                           "matches": {
                             "type": "array",
                             "items": {
                               "type": "object",
                               "properties": {
-                                "id": { "type": "string" },
-                                "name": { "type": "string" },
-                                "calories": { "type": "number" },
-                                "protein": { "type": "number" },
-                                "carbs": { "type": "number" },
-                                "fat": { "type": "number" },
-                                "servingSize": { "type": "number" },
-                                "servingUnit": { "type": "string" }
+                                "id": {
+                                  "type": "string"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "calories": {
+                                  "type": "number"
+                                },
+                                "protein": {
+                                  "type": "number"
+                                },
+                                "carbs": {
+                                  "type": "number"
+                                },
+                                "fat": {
+                                  "type": "number"
+                                },
+                                "servingSize": {
+                                  "type": "number"
+                                },
+                                "servingUnit": {
+                                  "type": "string"
+                                }
                               }
                             }
                           }
                         }
                       }
                     },
-                    "slot": { "type": "string", "nullable": true }
+                    "slot": {
+                      "type": "string",
+                      "nullable": true
+                    }
                   }
                 }
               }
@@ -158,13 +219,37 @@
           },
           "400": {
             "description": "Invalid image format",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "500": {
             "description": "Analysis failed",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/food/search": {
@@ -176,6 +261,16 @@
         "description": "Ranked food search over the seed DB + Indian foods + OpenFoodFacts + USDA + Spoonacular. Remote APIs fail soft. Returns up to `limit` matching foods.",
         "operationId": "searchFoods",
         "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
           {
             "name": "q",
             "in": "query",
@@ -233,6 +328,16 @@
         "operationId": "getFoodDay",
         "parameters": [
           {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
+          {
             "name": "date",
             "in": "query",
             "required": false,
@@ -275,6 +380,16 @@
         "description": "Removes every logged food entry for the given date. Returns count of cleared entries.",
         "operationId": "clearFoodDay",
         "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
           {
             "name": "date",
             "in": "query",
@@ -378,7 +493,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/food/log/{id}": {
@@ -390,6 +517,16 @@
         "description": "Remove a logged food entry by its log ID. Returns the updated FoodDay for the date.",
         "operationId": "deleteLoggedFood",
         "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
           {
             "name": "id",
             "in": "path",
@@ -510,7 +647,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/weight": {
@@ -522,6 +671,16 @@
         "description": "Weight tracking view with trend series, smoothed stats, and headline metrics for a selected window.",
         "operationId": "getWeight",
         "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
           {
             "name": "range",
             "in": "query",
@@ -570,6 +729,16 @@
         "description": "Record or overwrite a scale weight for a given date. Returns updated WeightData.",
         "operationId": "logWeight",
         "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
           {
             "name": "range",
             "in": "query",
@@ -658,6 +827,16 @@
         "operationId": "getInsights",
         "parameters": [
           {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
+          {
             "name": "mode",
             "in": "query",
             "required": false,
@@ -732,7 +911,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/goal": {
@@ -764,7 +955,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       },
       "post": {
         "tags": [
@@ -828,7 +1031,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/coach": {
@@ -840,6 +1055,16 @@
         "description": "Deterministic AI coach briefing with prioritized recommendations, check-in summary, macro targets, and talking points — all grounded in the user's training data.",
         "operationId": "getCoachBriefing",
         "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
           {
             "name": "mode",
             "in": "query",
@@ -956,7 +1181,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/coach/chat/sync": {
@@ -973,7 +1210,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["message"],
+                "required": [
+                  "message"
+                ],
                 "properties": {
                   "message": {
                     "type": "string",
@@ -1005,7 +1244,9 @@
                       "description": "Coach's text response."
                     }
                   },
-                  "required": ["reply"]
+                  "required": [
+                    "reply"
+                  ]
                 }
               }
             }
@@ -1014,7 +1255,9 @@
             "description": "Missing or empty message",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           },
@@ -1022,25 +1265,53 @@
             "description": "Coach unavailable (GEMINI_API_KEY not set)",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/food/barcode": {
       "get": {
-        "tags": ["Food"],
+        "tags": [
+          "Food"
+        ],
         "summary": "Lookup food by barcode",
         "description": "Returns a single food item from OpenFoodFacts by barcode (EAN/UPC). Use to log packaged foods by scanning barcode.",
         "operationId": "getFoodByBarcode",
         "parameters": [
           {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
+          {
             "name": "code",
             "in": "query",
             "required": true,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Barcode (EAN-13, UPC-A, etc.)"
           }
         ],
@@ -1052,41 +1323,64 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "item": { "$ref": "#/components/schemas/FoodItem" }
+                    "item": {
+                      "$ref": "#/components/schemas/FoodItem"
+                    }
                   }
                 }
               }
             }
           },
-          "404": { "description": "Barcode not found" }
+          "404": {
+            "description": "Barcode not found"
+          }
         }
       }
     },
     "/food/recent": {
       "get": {
-        "tags": ["Food"],
+        "tags": [
+          "Food"
+        ],
         "summary": "Get frequently logged foods",
         "description": "Returns the top-N most frequently logged foods. Optionally filtered by meal slot (slot bonus: +3 weight) and recency (maxDays).",
         "operationId": "getRecentFoods",
         "parameters": [
           {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer", "default": 10 }
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
           },
           {
             "name": "slot",
             "in": "query",
             "required": false,
-            "schema": { "$ref": "#/components/schemas/MealSlot" },
+            "schema": {
+              "$ref": "#/components/schemas/MealSlot"
+            },
             "description": "Boost foods logged in this meal slot."
           },
           {
             "name": "maxDays",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer" },
+            "schema": {
+              "type": "integer"
+            },
             "description": "Only count entries from the last N days."
           }
         ],
@@ -1103,14 +1397,31 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "foodId": { "type": "string" },
-                          "name": { "type": "string" },
-                          "count": { "type": "integer" },
-                          "lastDate": { "type": "string", "format": "date" },
-                          "calories": { "type": "number" },
-                          "protein": { "type": "number" },
-                          "carbs": { "type": "number" },
-                          "fat": { "type": "number" }
+                          "foodId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "count": {
+                            "type": "integer"
+                          },
+                          "lastDate": {
+                            "type": "string",
+                            "format": "date"
+                          },
+                          "calories": {
+                            "type": "number"
+                          },
+                          "protein": {
+                            "type": "number"
+                          },
+                          "carbs": {
+                            "type": "number"
+                          },
+                          "fat": {
+                            "type": "number"
+                          }
                         }
                       }
                     }
@@ -1124,16 +1435,31 @@
     },
     "/training-day": {
       "get": {
-        "tags": ["Goal"],
+        "tags": [
+          "Goal"
+        ],
         "summary": "Get training day status",
         "description": "Returns whether a specific date is a training day. Training days get +250 kcal, +20g protein, more carbs. Defaults to demo anchor date.",
         "operationId": "getTrainingDay",
         "parameters": [
           {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
+          {
             "name": "date",
             "in": "query",
             "required": false,
-            "schema": { "type": "string", "format": "date" },
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
             "description": "ISO date (YYYY-MM-DD). Defaults to demo anchor."
           }
         ],
@@ -1144,9 +1470,13 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["isTrainingDay"],
+                  "required": [
+                    "isTrainingDay"
+                  ],
                   "properties": {
-                    "isTrainingDay": { "type": "boolean" }
+                    "isTrainingDay": {
+                      "type": "boolean"
+                    }
                   }
                 }
               }
@@ -1155,7 +1485,9 @@
         }
       },
       "post": {
-        "tags": ["Goal"],
+        "tags": [
+          "Goal"
+        ],
         "summary": "Set or toggle training day",
         "description": "Set a specific date as training day or rest day. Omit isTraining to toggle. Training day bumps calorie/protein/carb targets by ~250 kcal / 20g protein / 45g carbs.",
         "operationId": "setTrainingDay",
@@ -1187,21 +1519,43 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["isTrainingDay", "date"],
+                  "required": [
+                    "isTrainingDay",
+                    "date"
+                  ],
                   "properties": {
-                    "isTrainingDay": { "type": "boolean" },
-                    "date": { "type": "string", "format": "date" }
+                    "isTrainingDay": {
+                      "type": "boolean"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    }
                   }
                 }
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/measurements": {
       "get": {
-        "tags": ["Progress"],
+        "tags": [
+          "Progress"
+        ],
         "summary": "Get body measurements",
         "description": "Returns all logged body measurements (waist, chest, arms, hips, thigh, BF%) oldest→newest plus the latest snapshot.",
         "operationId": "getMeasurements",
@@ -1215,12 +1569,18 @@
                   "properties": {
                     "measurements": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/Measurement" }
+                      "items": {
+                        "$ref": "#/components/schemas/Measurement"
+                      }
                     },
                     "latest": {
                       "oneOf": [
-                        { "$ref": "#/components/schemas/Measurement" },
-                        { "type": "null" }
+                        {
+                          "$ref": "#/components/schemas/Measurement"
+                        },
+                        {
+                          "type": "null"
+                        }
                       ]
                     }
                   }
@@ -1228,10 +1588,24 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       },
       "post": {
-        "tags": ["Progress"],
+        "tags": [
+          "Progress"
+        ],
         "summary": "Log a body measurement",
         "description": "Log circumference measurements (cm). If waist + neck + height are provided, body fat % is auto-estimated via the US Navy formula. Overwrites any existing entry for the same date.",
         "operationId": "logMeasurement",
@@ -1242,17 +1616,55 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "date": { "type": "string", "format": "date", "description": "ISO date. Default: 2026-07-02." },
-                  "waist": { "type": "number", "description": "Waist circumference in cm." },
-                  "hips": { "type": "number", "description": "Hip circumference in cm." },
-                  "chest": { "type": "number", "description": "Chest circumference in cm." },
-                  "armLeft": { "type": "number", "description": "Left arm circumference in cm." },
-                  "armRight": { "type": "number", "description": "Right arm circumference in cm." },
-                  "thigh": { "type": "number", "description": "Thigh circumference in cm." },
-                  "neck": { "type": "number", "description": "Neck circumference in cm — needed for Navy BF% auto-calculation." },
-                  "height": { "type": "number", "description": "Height in cm — needed for Navy BF% auto-calculation." },
-                  "sex": { "type": "string", "enum": ["male", "female"], "description": "Sex for Navy BF% formula. Default: male." },
-                  "bodyFat": { "type": "number", "description": "Body fat % if known directly (overrides auto-calculation)." }
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "ISO date. Default: 2026-07-02."
+                  },
+                  "waist": {
+                    "type": "number",
+                    "description": "Waist circumference in cm."
+                  },
+                  "hips": {
+                    "type": "number",
+                    "description": "Hip circumference in cm."
+                  },
+                  "chest": {
+                    "type": "number",
+                    "description": "Chest circumference in cm."
+                  },
+                  "armLeft": {
+                    "type": "number",
+                    "description": "Left arm circumference in cm."
+                  },
+                  "armRight": {
+                    "type": "number",
+                    "description": "Right arm circumference in cm."
+                  },
+                  "thigh": {
+                    "type": "number",
+                    "description": "Thigh circumference in cm."
+                  },
+                  "neck": {
+                    "type": "number",
+                    "description": "Neck circumference in cm — needed for Navy BF% auto-calculation."
+                  },
+                  "height": {
+                    "type": "number",
+                    "description": "Height in cm — needed for Navy BF% auto-calculation."
+                  },
+                  "sex": {
+                    "type": "string",
+                    "enum": [
+                      "male",
+                      "female"
+                    ],
+                    "description": "Sex for Navy BF% formula. Default: male."
+                  },
+                  "bodyFat": {
+                    "type": "number",
+                    "description": "Body fat % if known directly (overrides auto-calculation)."
+                  }
                 }
               }
             }
@@ -1263,7 +1675,9 @@
             "description": "Measurement logged",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Measurement" }
+                "schema": {
+                  "$ref": "#/components/schemas/Measurement"
+                }
               }
             }
           },
@@ -1271,11 +1685,25 @@
             "description": "Bad request",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/reset": {
@@ -1312,7 +1740,19 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
+        ]
       }
     },
     "/export": {
@@ -1324,6 +1764,16 @@
         "description": "Downloads all user data as JSON or CSV file.",
         "operationId": "exportData",
         "parameters": [
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          },
           {
             "name": "format",
             "in": "query",
@@ -1385,7 +1835,9 @@
     },
     "/user/register": {
       "post": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "summary": "Register a new user",
         "description": "Creates a new user ID (UUID). Store this ID and send it as X-User-Id header on all subsequent requests.",
         "operationId": "registerUser",
@@ -1397,27 +1849,50 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["userId", "createdAt"],
+                  "required": [
+                    "userId",
+                    "createdAt"
+                  ],
                   "properties": {
-                    "userId": { "type": "string", "format": "uuid", "description": "Unique user identifier. Send as X-User-Id header on all requests." },
-                    "createdAt": { "type": "string", "format": "date-time" }
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "Unique user identifier. Send as X-User-Id header on all requests."
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
                   }
                 }
               }
             }
           },
-          "500": { "$ref": "#/components/responses/Error" }
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
         }
       }
     },
     "/user": {
       "get": {
-        "tags": ["User"],
+        "tags": [
+          "User"
+        ],
         "summary": "Get current user info",
         "description": "Returns user info for the authenticated user. Requires X-User-Id header.",
         "operationId": "getUser",
         "parameters": [
-          { "$ref": "#/components/parameters/UserIdHeader" }
+          {
+            "name": "X-User-Id",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+          }
         ],
         "responses": {
           "200": {
@@ -1426,32 +1901,38 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["userId", "createdAt"],
+                  "required": [
+                    "userId",
+                    "createdAt"
+                  ],
                   "properties": {
-                    "userId": { "type": "string", "format": "uuid" },
-                    "createdAt": { "type": "string", "format": "date-time" }
+                    "userId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
                   }
                 }
               }
             }
           },
-          "401": { "$ref": "#/components/responses/Error" },
-          "404": { "$ref": "#/components/responses/Error" },
-          "500": { "$ref": "#/components/responses/Error" }
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error"
+          }
         }
       }
     }
   },
   "components": {
-    "parameters": {
-      "UserIdHeader": {
-        "name": "X-User-Id",
-        "in": "header",
-        "required": false,
-        "schema": { "type": "string", "format": "uuid" },
-        "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
-      }
-    },
     "schemas": {
       "ErrorResponse": {
         "type": "object",
@@ -1467,17 +1948,49 @@
       },
       "Measurement": {
         "type": "object",
+        "required": [
+          "date"
+        ],
         "properties": {
-          "date": { "type": "string", "format": "date" },
-          "waist": { "type": ["number", "null"], "description": "cm" },
-          "hips": { "type": ["number", "null"], "description": "cm" },
-          "chest": { "type": ["number", "null"], "description": "cm" },
-          "armLeft": { "type": ["number", "null"], "description": "cm" },
-          "armRight": { "type": ["number", "null"], "description": "cm" },
-          "thigh": { "type": ["number", "null"], "description": "cm" },
-          "neck": { "type": ["number", "null"], "description": "cm (for Navy BF%)" },
-          "height": { "type": ["number", "null"], "description": "cm (for Navy BF%)" },
-          "bodyFat": { "type": ["number", "null"], "description": "Body fat percentage. Auto-estimated via US Navy formula if waist+neck+height provided." }
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "waist": {
+            "type": "number",
+            "nullable": true,
+            "description": "cm"
+          },
+          "hips": {
+            "type": "number",
+            "nullable": true,
+            "description": "cm"
+          },
+          "chest": {
+            "type": "number",
+            "nullable": true,
+            "description": "cm"
+          },
+          "armLeft": {
+            "type": "number",
+            "nullable": true,
+            "description": "cm"
+          },
+          "armRight": {
+            "type": "number",
+            "nullable": true,
+            "description": "cm"
+          },
+          "thigh": {
+            "type": "number",
+            "nullable": true,
+            "description": "cm"
+          },
+          "bodyFat": {
+            "type": "number",
+            "nullable": true,
+            "description": "Body fat percentage."
+          }
         }
       },
       "GoalMode": {
@@ -2288,53 +2801,6 @@
             "items": {
               "$ref": "#/components/schemas/Insight"
             }
-          }
-        }
-      },
-      "Measurement": {
-        "type": "object",
-        "required": [
-          "date"
-        ],
-        "properties": {
-          "date": {
-            "type": "string",
-            "format": "date"
-          },
-          "waist": {
-            "type": "number",
-            "nullable": true,
-            "description": "cm"
-          },
-          "hips": {
-            "type": "number",
-            "nullable": true,
-            "description": "cm"
-          },
-          "chest": {
-            "type": "number",
-            "nullable": true,
-            "description": "cm"
-          },
-          "armLeft": {
-            "type": "number",
-            "nullable": true,
-            "description": "cm"
-          },
-          "armRight": {
-            "type": "number",
-            "nullable": true,
-            "description": "cm"
-          },
-          "thigh": {
-            "type": "number",
-            "nullable": true,
-            "description": "cm"
-          },
-          "bodyFat": {
-            "type": "number",
-            "nullable": true,
-            "description": "Body fat percentage."
           }
         }
       },
