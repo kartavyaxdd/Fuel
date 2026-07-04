@@ -4,6 +4,7 @@ import { buildCoach } from '../domain/coach';
 import { buildDailyRecords } from '../domain/dailyRecords';
 import { isCoachEnabled, chatWithCoach } from '../domain/geminiCoach';
 import { isTrainingDay } from '../domain/trainingDay';
+import { DEMO_ANCHOR_DATE } from '../domain/sampleData';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ router.get('/coach', (req, res) => {
     const targetWeight = normalizeTargetWeight(req.query.targetWeight);
     const currentTarget = normalizeTarget(req.query.currentTarget);
     res.json(
-      buildCoach(buildDailyRecords(), { mode, targetWeight, currentTarget, trainingDay: isTrainingDay() }),
+      buildCoach(buildDailyRecords(), { mode, targetWeight, currentTarget, trainingDay: isTrainingDay(DEMO_ANCHOR_DATE) }),
     );
   } catch {
     res.status(500).json({ error: 'Internal server error' });

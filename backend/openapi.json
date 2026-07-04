@@ -1062,7 +1062,7 @@
       "get": {
         "tags": ["Food"],
         "summary": "Get frequently logged foods",
-        "description": "Returns the top-N most frequently logged foods across all dates, sorted by count. Useful for quick-log.",
+        "description": "Returns the top-N most frequently logged foods. Optionally filtered by meal slot (slot bonus: +3 weight) and recency (maxDays).",
         "operationId": "getRecentFoods",
         "parameters": [
           {
@@ -1070,6 +1070,20 @@
             "in": "query",
             "required": false,
             "schema": { "type": "integer", "default": 10 }
+          },
+          {
+            "name": "slot",
+            "in": "query",
+            "required": false,
+            "schema": { "$ref": "#/components/schemas/MealSlot" },
+            "description": "Boost foods logged in this meal slot."
+          },
+          {
+            "name": "maxDays",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" },
+            "description": "Only count entries from the last N days."
           }
         ],
         "responses": {
@@ -1108,8 +1122,17 @@
       "get": {
         "tags": ["Goal"],
         "summary": "Get training day status",
-        "description": "Returns whether today is a training day. Training days get +250 kcal, +20g protein, more carbs.",
+        "description": "Returns whether a specific date is a training day. Training days get +250 kcal, +20g protein, more carbs. Defaults to demo anchor date.",
         "operationId": "getTrainingDay",
+        "parameters": [
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date" },
+            "description": "ISO date (YYYY-MM-DD). Defaults to demo anchor."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Training day status",
@@ -1117,6 +1140,7 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "required": ["isTrainingDay"],
                   "properties": {
                     "isTrainingDay": { "type": "boolean" }
                   }
@@ -1129,7 +1153,7 @@
       "post": {
         "tags": ["Goal"],
         "summary": "Set or toggle training day",
-        "description": "Set today as a training day or rest day. Omit body to toggle. Training day bumps calorie/protein/carb targets by ~250 kcal / 20g protein / 45g carbs.",
+        "description": "Set a specific date as training day or rest day. Omit isTraining to toggle. Training day bumps calorie/protein/carb targets by ~250 kcal / 20g protein / 45g carbs.",
         "operationId": "setTrainingDay",
         "requestBody": {
           "required": false,
@@ -1138,6 +1162,11 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "date": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "ISO date. Defaults to demo anchor."
+                  },
                   "isTraining": {
                     "type": "boolean",
                     "description": "true = training day, false = rest day. Omit to toggle."
@@ -1154,8 +1183,10 @@
               "application/json": {
                 "schema": {
                   "type": "object",
+                  "required": ["isTrainingDay", "date"],
                   "properties": {
-                    "isTrainingDay": { "type": "boolean" }
+                    "isTrainingDay": { "type": "boolean" },
+                    "date": { "type": "string", "format": "date" }
                   }
                 }
               }
@@ -1373,6 +1404,8 @@
           "armLeft": { "type": ["number", "null"], "description": "cm" },
           "armRight": { "type": ["number", "null"], "description": "cm" },
           "thigh": { "type": ["number", "null"], "description": "cm" },
+          "neck": { "type": ["number", "null"], "description": "cm (for Navy BF%)" },
+          "height": { "type": ["number", "null"], "description": "cm (for Navy BF%)" },
           "bodyFat": { "type": ["number", "null"], "description": "Body fat percentage. Auto-estimated via US Navy formula if waist+neck+height provided." }
         }
       },

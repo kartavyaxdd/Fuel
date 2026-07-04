@@ -9,28 +9,34 @@ export const TRAINING_DAY_BONUS_PROTEIN = 20;
 /** Extra carb grams on training day (fuel). */
 export const TRAINING_DAY_BONUS_CARBS = 45;
 
-let state = { isTrainingDay: false };
+/** Persisted state: date -> boolean (is training day). */
+let state: Record<string, boolean> = {};
 
-export function isTrainingDay(): boolean {
-  return state.isTrainingDay;
+export function isTrainingDay(date?: string): boolean {
+  const d = date ?? (() => DEMO_ANCHOR_DATE)();
+  return state[d] === true;
 }
 
-export function setTrainingDay(value: boolean): boolean {
-  state.isTrainingDay = value;
+export function setTrainingDay(date: string, value: boolean): boolean {
+  state[date] = value;
+  if (!value) delete state[date];
   scheduleSave();
-  return state.isTrainingDay;
+  return value;
 }
 
-export function toggleTrainingDay(): boolean {
-  return setTrainingDay(!state.isTrainingDay);
+export function toggleTrainingDay(date?: string): boolean {
+  const d = date ?? (() => DEMO_ANCHOR_DATE)();
+  return setTrainingDay(d, !isTrainingDay(d));
 }
+
+import { DEMO_ANCHOR_DATE } from './sampleData';
 
 registerStore(
   'trainingDay',
   () => ({ ...state }),
   (data: unknown) => {
-    if (data && typeof data === 'object' && 'isTrainingDay' in data) {
-      state = { isTrainingDay: Boolean((data as Record<string, unknown>).isTrainingDay) };
+    if (data && typeof data === 'object') {
+      state = { ...data } as Record<string, boolean>;
     }
   },
 );

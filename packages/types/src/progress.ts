@@ -13,6 +13,10 @@ export interface Measurement {
   armRight: number | null;
   /** Thigh circumference in cm. */
   thigh: number | null;
+  /** Neck circumference in cm (for Navy BF% formula). */
+  neck: number | null;
+  /** Height in cm (for Navy BF% formula). */
+  height: number | null;
   /** Body-fat % (if estimated/measured). */
   bodyFat: number | null;
 }

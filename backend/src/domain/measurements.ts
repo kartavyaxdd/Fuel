@@ -63,6 +63,8 @@ export function logMeasurement(input: Partial<Measurement> & {
     armLeft: input.armLeft ?? null,
     armRight: input.armRight ?? null,
     thigh: input.thigh ?? null,
+    neck: neck ?? null,
+    height: height ?? null,
     bodyFat,
   };
 

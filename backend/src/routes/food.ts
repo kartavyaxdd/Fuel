@@ -90,7 +90,10 @@ router.get('/food/recent', (req: Request, res: Response) => {
   try {
     const limitRaw = Number(req.query.limit);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 10;
-    res.status(200).json({ items: getRecentFoods(limit) });
+    const slot = typeof req.query.slot === 'string' ? req.query.slot : undefined;
+    const maxDaysRaw = Number(req.query.maxDays);
+    const maxDays = Number.isFinite(maxDaysRaw) && maxDaysRaw > 0 ? maxDaysRaw : undefined;
+    res.status(200).json({ items: getRecentFoods(limit, { slot, maxDays }) });
   } catch (error) {
     console.error('Error getting recent foods:', error);
     res.status(500).json({ error: 'Internal server error' });

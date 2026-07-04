@@ -72,7 +72,7 @@ export function buildDashboard(
   const weekAgo = weightSeries[Math.max(0, weightSeries.length - 8)];
   const trendDelta = last && weekAgo ? round(last.trend - weekAgo.trend, 2) : 0;
 
-  const calorieTarget = recommendedCalorieTarget(expenditureEstimate, mode, isTrainingDay());
+  const calorieTarget = recommendedCalorieTarget(expenditureEstimate, mode, isTrainingDay(DEMO_ANCHOR_DATE));
 
   // Today's consumed values from the actual food log.
   const meals = todaysMeals();

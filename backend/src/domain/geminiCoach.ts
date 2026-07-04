@@ -268,7 +268,7 @@ Energy balance:          ${ctx.energyBalance != null ? (ctx.energyBalance > 0 ? 
 Adherence (7d):          ${adherencePct}%
 Model confidence:        ${Math.round(ctx.confidence * 100)}%
 
-TODAY: ${isTrainingDay() ? '🏋️ TRAINING DAY — targets are elevated (+250 kcal, +20g protein, more carbs)' : '😴 REST DAY — standard targets'}
+TODAY: ${isTrainingDay(DEMO_ANCHOR_DATE) ? '🏋️ TRAINING DAY — targets are elevated (+250 kcal, +20g protein, more carbs)' : '😴 REST DAY — standard targets'}
 
 RECOMMENDED TARGETS:
   Calories: ${ctx.recommended} kcal/day

@@ -114,29 +114,37 @@ export function getAllLogDates(): string[] {
   return [...LOG.keys()].sort();
 }
 
-/** Top-N most frequently logged foods across all dates, sorted by count desc. */
-export function getRecentFoods(limit = 10): { foodId: string; name: string; count: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }[] {
-  const freq = new Map<string, { name: string; count: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }>();
+/** Top-N frequently logged foods, optionally weighted by meal slot and recency. */
+export function getRecentFoods(
+  limit = 10,
+  opts?: { slot?: string; maxDays?: number },
+): { foodId: string; name: string; count: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }[] {
+  const recentThreshold = opts?.maxDays ? Date.now() - opts.maxDays * 86400000 : 0;
+  const freq = new Map<string, { name: string; count: number; slotCount: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }>();
   for (const [date, entries] of LOG) {
+    if (recentThreshold > 0) {
+      const d = new Date(`${date}T00:00:00Z`).getTime();
+      if (d < recentThreshold) continue;
+    }
     for (const e of entries) {
       const cur = freq.get(e.foodId);
-      if (!cur || date > cur.lastDate) {
-        freq.set(e.foodId, {
-          name: e.name,
-          count: (cur?.count ?? 0) + 1,
-          lastDate: date,
-          calories: e.calories,
-          protein: e.protein,
-          carbs: e.carbs,
-          fat: e.fat,
-        });
-      } else {
-        cur.count++;
-      }
+      const isNewer = !cur || date > cur.lastDate;
+      const baseCount = (cur?.count ?? 0) + 1;
+      const slotBonus = opts?.slot && e.slot === opts.slot ? 3 : 0;
+      freq.set(e.foodId, {
+        name: e.name,
+        count: baseCount + slotBonus,
+        slotCount: (cur?.slotCount ?? 0) + (opts?.slot && e.slot === opts.slot ? 1 : 0),
+        lastDate: isNewer ? date : (cur?.lastDate ?? date),
+        calories: isNewer ? e.calories : (cur?.calories ?? e.calories),
+        protein: isNewer ? e.protein : (cur?.protein ?? e.protein),
+        carbs: isNewer ? e.carbs : (cur?.carbs ?? e.carbs),
+        fat: isNewer ? e.fat : (cur?.fat ?? e.fat),
+      });
     }
   }
   return [...freq.entries()]
-    .map(([foodId, v]) => ({ foodId, ...v }))
+    .map(([foodId, v]) => ({ foodId, name: v.name, count: v.count, lastDate: v.lastDate, calories: v.calories, protein: v.protein, carbs: v.carbs, fat: v.fat }))
     .sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate))
     .slice(0, limit);
 }
