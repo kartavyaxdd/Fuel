@@ -1,4 +1,12 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/nav/AppShell";
@@ -14,9 +22,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nourish — Nutrition & Body Composition",
+  title: "Fuel — Nutrition & Physique Coach",
   description:
-    "Adaptive nutrition and body-composition tracking with a continuously learning energy model.",
+    "Aesthetic physique tracking with AI coaching. Adaptive calorie targets, body fat tracking, and a brutal no-BS coach.",
+  applicationName: "Fuel",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Fuel",
+  },
+  formatDetection: { telephone: false },
 };
 
 export default function RootLayout({

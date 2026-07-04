@@ -411,14 +411,30 @@ export default function CoachPage() {
     load(mode);
   }, [load, mode]);
 
-  // Chat state
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  // Chat state — persisted to localStorage
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem("fuel_chat_history");
+      if (stored) return JSON.parse(stored) as ChatMessage[];
+    } catch {}
+    return [];
+  });
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [statusEvents, setStatusEvents] = useState<ProgressEvent[]>([]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
+
+  // Persist chat history whenever it changes
+  useEffect(() => {
+    try {
+      // Keep last 40 messages to avoid blowing up localStorage
+      const trimmed = chatMessages.slice(-40);
+      localStorage.setItem("fuel_chat_history", JSON.stringify(trimmed));
+    } catch {}
+  }, [chatMessages]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -695,7 +711,21 @@ export default function CoachPage() {
 
           {/* Brutal AI Coach Chat */}
           <Panel className="mt-6">
-            <PanelHeader title="Brutal Coach" hint="chat — no coddling" />
+            <div className="flex items-center justify-between mb-1">
+              <PanelHeader title="Brutal Coach" hint="chat — no coddling" />
+              {chatMessages.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChatMessages([]);
+                    localStorage.removeItem("fuel_chat_history");
+                  }}
+                  className="text-xs text-white/30 hover:text-white/60 transition"
+                >
+                  Clear chat
+                </button>
+              ) : null}
+            </div>
             {chatError ? (
               <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                 {chatError}
