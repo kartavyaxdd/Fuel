@@ -121,7 +121,7 @@ export function scheduleSave(): void {
   timer = setTimeout(() => {
     timer = null;
     lastWrite = persistNow();
-    lastWrite.catch(() => { /* swallow */ });
+    lastWrite.catch((err) => { console.error('[store] persist failed:', err); });
   }, SAVE_DEBOUNCE_MS);
   if (typeof timer.unref === 'function') timer.unref();
 }

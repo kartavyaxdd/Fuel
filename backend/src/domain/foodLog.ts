@@ -9,7 +9,13 @@ import type {
 import { MEAL_SLOTS } from '@nutrition/types';
 import { getFoodById } from './foodDb';
 import { buildDemoDashboard } from './dashboard';
+import { getGoal, getGoalForUser } from './userGoal';
 import { registerStore, scheduleSave, select, upsert } from './store';
+import { recommendedCalorieTarget } from './goals';
+import { computeAdaptiveExpenditure } from './energyModel';
+import { buildDailyRecords, buildDailyRecordsForUser } from './dailyRecords';
+import { isTrainingDay } from './trainingDay';
+import { DEMO_ANCHOR_DATE } from './sampleData';
 
 const SLOT_LABELS: Record<MealSlot, string> = {
   breakfast: 'Breakfast',
@@ -187,6 +193,19 @@ function targetMacros(): Macros {
   };
 }
 
+async function targetMacrosForUser(userId: string): Promise<Macros> {
+  const goal = await getGoalForUser(userId);
+  const history = await buildDailyRecordsForUser(userId);
+  const { expenditureEstimate } = computeAdaptiveExpenditure(history);
+  const calorieTarget = recommendedCalorieTarget(expenditureEstimate, goal.mode, isTrainingDay(DEMO_ANCHOR_DATE));
+  return {
+    calories: calorieTarget,
+    protein: Math.round((calorieTarget * 0.3) / 4),
+    carbs: Math.round((calorieTarget * 0.4) / 4),
+    fat: Math.round((calorieTarget * 0.3) / 9),
+  };
+}
+
 /** Assemble the full FoodDay payload for a date. */
 export function buildFoodDay(date: string): FoodDay {
   const entries = LOG.get(date) ?? [];
@@ -288,18 +307,18 @@ function buildLoggedFoodEntry(date: string, slot: MealSlot, foodId: string, quan
   };
 }
 
-function buildFoodDayFromData(log: Map<string, LoggedFood[]>, date: string): FoodDay {
+function buildFoodDayFromData(log: Map<string, LoggedFood[]>, date: string, target?: Macros): FoodDay {
   const entries = log.get(date) ?? [];
   const groups = groupBySlot(entries);
   const consumed = entries.reduce((acc, e) => addMacros(acc, e), emptyMacros());
-  const target = targetMacros();
+  const tgt = target ?? targetMacros();
   return {
-    date, target, consumed,
+    date, target: tgt, consumed,
     remaining: {
-      calories: target.calories - consumed.calories,
-      protein: round(target.protein - consumed.protein),
-      carbs: round(target.carbs - consumed.carbs),
-      fat: round(target.fat - consumed.fat),
+      calories: tgt.calories - consumed.calories,
+      protein: round(tgt.protein - consumed.protein),
+      carbs: round(tgt.carbs - consumed.carbs),
+      fat: round(tgt.fat - consumed.fat),
     },
     groups,
   };
@@ -365,7 +384,8 @@ export async function getDayMealsForUser(date: string, userId: string): Promise<
 
 export async function buildFoodDayForUser(date: string, userId: string): Promise<FoodDay> {
   const log = await getFoodLogForUser(userId);
-  return buildFoodDayFromData(log, date);
+  const target = await targetMacrosForUser(userId);
+  return buildFoodDayFromData(log, date, target);
 }
 
 export async function copyDayForUser(fromDate: string, toDate: string, loggedAt: string, userId: string): Promise<number> {

@@ -1,14 +1,15 @@
 import { Router } from 'express';
+import crypto from 'crypto';
 import { upsert, select } from '../domain/store';
 
 const router = Router();
 
 function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-    const r = Math.random() * 16 | 0;
-    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-  });
+  return crypto.randomUUID();
 }
+
+/** In-memory fallback for username_index lookups when Supabase is unavailable. */
+const inMemoryUsernameIndex = new Map<string, { userId: string; createdAt: string }>();
 
 /**
  * POST /api/user/register
@@ -18,14 +19,15 @@ function generateUUID(): string {
  */
 router.post('/user/register', async (req, res) => {
   try {
-    const { username } = req.body ?? {};
+    const { username: rawUsername } = req.body ?? {};
+    const username = typeof rawUsername === 'string' ? rawUsername.trim().toLowerCase() : undefined;
 
     if (username) {
-      if (typeof username !== 'string' || username.length < 2) {
+      if (username.length < 2) {
         res.status(400).json({ error: 'Username must be at least 2 characters' });
         return;
       }
-      const existing = await select('username_index', username.toLowerCase().trim());
+      const existing = await select('username_index', username) ?? inMemoryUsernameIndex.get(username);
       if (existing) {
         res.status(409).json({ error: 'Username already taken. Choose another.' });
         return;
@@ -37,13 +39,15 @@ router.post('/user/register', async (req, res) => {
     await upsert('user', { id: userId, createdAt: now, username: username ?? null }, userId);
 
     if (username) {
-      await upsert('username_index', { userId, username: username.toLowerCase().trim(), createdAt: now }, username.toLowerCase().trim());
+      await upsert('username_index', { userId, username, createdAt: now }, username);
+      inMemoryUsernameIndex.set(username, { userId, createdAt: now });
     }
 
     const out: Record<string, unknown> = { userId, createdAt: now };
-    if (username) out.username = username.toLowerCase().trim();
+    if (username) out.username = username;
     res.status(201).json(out);
-  } catch {
+  } catch (e) {
+    console.error('[user] register failed:', e);
     res.status(500).json({ error: 'Failed to create user' });
   }
 });
@@ -65,7 +69,8 @@ router.get('/user', async (req, res) => {
       return;
     }
     res.json({ userId, ...(data as object) });
-  } catch {
+  } catch (e) {
+    console.error('[user] get failed:', e);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -82,14 +87,15 @@ router.get('/user/lookup', async (req, res) => {
       res.status(400).json({ error: 'username query parameter is required (min 2 chars)' });
       return;
     }
-    const data = await select('username_index', username);
+    const data = await select('username_index', username) ?? inMemoryUsernameIndex.get(username);
     if (!data) {
       res.status(404).json({ error: 'Username not found. Register first via POST /api/user/register.' });
       return;
     }
     const { userId, createdAt } = data as { userId: string; createdAt: string };
     res.json({ userId, username, createdAt });
-  } catch {
+  } catch (e) {
+    console.error('[user] lookup failed:', e);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

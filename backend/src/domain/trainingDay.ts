@@ -1,4 +1,5 @@
 import { registerStore, scheduleSave, select, upsert } from './store';
+import { DEMO_ANCHOR_DATE } from './sampleData';
 
 /** Extra kcal added to target on training days. */
 export const TRAINING_DAY_BONUS_KCAL = 250;
@@ -28,8 +29,6 @@ export function toggleTrainingDay(date?: string): boolean {
   const d = date ?? (() => DEMO_ANCHOR_DATE)();
   return setTrainingDay(d, !isTrainingDay(d));
 }
-
-import { DEMO_ANCHOR_DATE } from './sampleData';
 
 registerStore(
   'trainingDay',

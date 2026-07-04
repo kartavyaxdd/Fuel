@@ -30,7 +30,7 @@ router.get('/export', async (req: Request, res: Response) => {
         }
       }
       for (const point of weight.series) {
-        rows.push(`weight,${point.date},,${point.scale ?? ''},${point.trend},,,`);
+        rows.push(`weight,${point.date},,${point.scale ?? ''},${point.trend},,`);
       }
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename="fuel-export.csv"');

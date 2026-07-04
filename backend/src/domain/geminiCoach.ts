@@ -7,7 +7,6 @@ import { getGoal, getGoalForUser } from './userGoal';
 import { buildCoach } from './coach';
 import { computeWeightTrend, computeAdaptiveExpenditure } from './energyModel';
 import { buildDailyRecords, buildDailyRecordsForUser } from './dailyRecords';
-import { DEMO_ANCHOR_DATE } from './sampleData';
 import { estimateEtaWeeks } from './goals';
 import { getLatestMeasurement, getMeasurementsForUser } from './measurements';
 import { isTrainingDay } from './trainingDay';
@@ -110,9 +109,9 @@ Example:
 
 /* ------------------------------------------------------------------ Helpers */
 
-/** Return demo "today" date — same as the food log's demo anchor. */
+/** Return today's date in YYYY-MM-DD format. */
 function demoToday(): string {
-  return DEMO_ANCHOR_DATE;
+  return new Date().toISOString().slice(0, 10);
 }
 
 interface CoachContext {
@@ -287,10 +286,11 @@ async function buildCoachContextForUser(userId: string): Promise<CoachContext> {
 
 function buildSystemPrompt(): string {
   const ctx = buildCoachContext();
+  const realToday = new Date().toISOString().slice(0, 10);
 
   const daysOnPlan = (() => {
     const start = new Date(ctx.startDate);
-    const anchor = new Date(DEMO_ANCHOR_DATE);
+    const anchor = new Date(realToday);
     return Math.max(0, Math.round((anchor.getTime() - start.getTime()) / 86400000));
   })();
 
@@ -339,7 +339,7 @@ Energy balance:          ${ctx.energyBalance != null ? (ctx.energyBalance > 0 ? 
 Adherence (7d):          ${adherencePct}%
 Model confidence:        ${Math.round(ctx.confidence * 100)}%
 
-TODAY: ${isTrainingDay(DEMO_ANCHOR_DATE) ? '🏋️ TRAINING DAY — targets are elevated (+250 kcal, +20g protein, more carbs)' : '😴 REST DAY — standard targets'}
+TODAY: ${isTrainingDay(demoToday()) ? '🏋️ TRAINING DAY — targets are elevated (+250 kcal, +20g protein, more carbs)' : '😴 REST DAY — standard targets'}
 
 RECOMMENDED TARGETS:
   Calories: ${ctx.recommended} kcal/day
@@ -397,10 +397,11 @@ Use it immediately when the user says they ate something. Infer the slot from co
 
 async function buildSystemPromptForUser(userId: string): Promise<string> {
   const ctx = await buildCoachContextForUser(userId);
+  const realToday = new Date().toISOString().slice(0, 10);
 
   const daysOnPlan = (() => {
     const start = new Date(ctx.startDate);
-    const anchor = new Date(DEMO_ANCHOR_DATE);
+    const anchor = new Date(realToday);
     return Math.max(0, Math.round((anchor.getTime() - start.getTime()) / 86400000));
   })();
 
@@ -449,7 +450,7 @@ Energy balance:          ${ctx.energyBalance != null ? (ctx.energyBalance > 0 ? 
 Adherence (7d):          ${adherencePct}%
 Model confidence:        ${Math.round(ctx.confidence * 100)}%
 
-TODAY: ${isTrainingDay(DEMO_ANCHOR_DATE) ? '🏋️ TRAINING DAY — targets are elevated (+250 kcal, +20g protein, more carbs)' : '😴 REST DAY — standard targets'}
+TODAY: ${isTrainingDay(demoToday()) ? '🏋️ TRAINING DAY — targets are elevated (+250 kcal, +20g protein, more carbs)' : '😴 REST DAY — standard targets'}
 
 RECOMMENDED TARGETS:
   Calories: ${ctx.recommended} kcal/day

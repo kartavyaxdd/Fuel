@@ -189,13 +189,13 @@ router.post('/food/log', async (req: Request, res: Response) => {
     const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const body = req.body as Partial<LogFoodRequest>;
     if (
-      typeof body.date !== 'string' ||
+      typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date) ||
       !isMealSlot(body.slot) ||
       typeof body.foodId !== 'string' ||
       typeof body.quantity !== 'number' ||
       body.quantity <= 0
     ) {
-      res.status(400).json({ error: 'Invalid log request' });
+      res.status(400).json({ error: 'Invalid log request. date must be YYYY-MM-DD.' });
       return;
     }
     const loggedAt = new Date().toISOString();

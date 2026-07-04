@@ -63,6 +63,14 @@ router.post('/coach/chat', async (req, res) => {
     return;
   }
 
+  // Validate sessionHistory to prevent prompt injection
+  const safeHistory = (Array.isArray(sessionHistory) ? sessionHistory : []).filter(
+    (h: unknown) =>
+      typeof h === 'object' && h !== null &&
+      (h as { role: string }).role === 'user' &&
+      typeof (h as { text: string }).text === 'string',
+  );
+
   // SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -79,7 +87,7 @@ router.post('/coach/chat', async (req, res) => {
 
   try {
     const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
-    await chatWithCoach(message, sessionHistory ?? [], send, userId);
+    await chatWithCoach(message, safeHistory, send, userId);
     send({ type: 'done' });
   } catch (e) {
     send({ type: 'error', message: e instanceof Error ? e.message : 'Internal server error' });
@@ -105,9 +113,16 @@ router.post('/coach/chat/sync', async (req, res) => {
     return;
   }
 
+  const safeHistory = (Array.isArray(sessionHistory) ? sessionHistory : []).filter(
+    (h: unknown) =>
+      typeof h === 'object' && h !== null &&
+      (h as { role: string }).role === 'user' &&
+      typeof (h as { text: string }).text === 'string',
+  );
+
   try {
     const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
-    const reply = await chatWithCoach(message, sessionHistory ?? [], undefined, userId);
+    const reply = await chatWithCoach(message, safeHistory, undefined, userId);
     res.json({ reply });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });

@@ -1,6 +1,7 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import dashboardRoutes from './routes/dashboard';
@@ -35,6 +36,15 @@ app.use(cors({
 
 // Security headers
 app.use(helmet());
+
+// Rate limiting — prevent abuse on free tier
+app.use('/api', rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Try again in a minute.' },
+}));
 
 // Body parsing middleware — 10MB limit for photo uploads (base64)
 app.use(express.json({ limit: '10mb' }));

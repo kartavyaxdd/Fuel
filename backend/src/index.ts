@@ -1,6 +1,5 @@
 import app from './server';
 import dotenv from 'dotenv';
-import rateLimit from 'express-rate-limit';
 import { loadAll, flushNow } from './domain/store';
 
 dotenv.config();
@@ -9,15 +8,6 @@ const PORT = parseInt(process.env.PORT || '3001', 10);
 
 if (require.main === module) {
   loadAll().then(() => {
-    // Rate limiting — prevent abuse on free tier
-    app.use('/api', rateLimit({
-      windowMs: 60 * 1000,
-      max: 60,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: { error: 'Too many requests. Try again in a minute.' },
-    }));
-
     const server = app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
