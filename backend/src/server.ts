@@ -19,9 +19,8 @@ dotenv.config();
 
 const app: Express = express();
 
-// CORS configuration — allow frontend URL + Render production URL
+// CORS — allow Render production + local dev
 const allowedOrigins: string[] = ['https://fuel-2j8v.onrender.com'];
-if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
 if (process.env.NODE_ENV !== 'production') allowedOrigins.push('http://localhost:3000');
 
 app.use(cors({
