@@ -7,7 +7,7 @@ const router = Router();
 /** GET /api/weight?range=30|60|90|180 — the weight tracking view. */
 router.get('/weight', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const range = normalizeRange(req.query.range);
     const data = userId ? await buildWeightDataForUser(range, userId) : buildWeightData(range);
     res.json(data);
@@ -19,7 +19,7 @@ router.get('/weight', async (req: Request, res: Response) => {
 /** POST /api/weight — record or overwrite a weigh-in, returns the fresh view. */
 router.post('/weight', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const { date, weight } = req.body as Partial<LogWeightRequest>;
 
     if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {

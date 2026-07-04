@@ -94,7 +94,7 @@ router.get('/food/barcode', async (req: Request, res: Response) => {
  */
 router.get('/food/recent', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const limitRaw = Number(req.query.limit);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 10;
     const slot = typeof req.query.slot === 'string' ? req.query.slot : undefined;
@@ -170,7 +170,7 @@ router.post('/food/analyze-photo', async (req: Request, res: Response) => {
  */
 router.get('/food/day', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const date = typeof req.query.date === 'string' ? req.query.date : DEMO_ANCHOR_DATE;
     const day = userId ? await buildFoodDayForUser(date, userId) : buildFoodDay(date);
     res.status(200).json(day);
@@ -186,7 +186,7 @@ router.get('/food/day', async (req: Request, res: Response) => {
  */
 router.post('/food/log', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const body = req.body as Partial<LogFoodRequest>;
     if (
       typeof body.date !== 'string' ||
@@ -219,7 +219,7 @@ router.post('/food/log', async (req: Request, res: Response) => {
  */
 router.delete('/food/log/:id', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const date = typeof req.query.date === 'string' ? req.query.date : DEMO_ANCHOR_DATE;
     if (userId) {
       const removed = await deleteLoggedFoodForUser(date, req.params.id, userId);
@@ -248,7 +248,7 @@ router.delete('/food/log/:id', async (req: Request, res: Response) => {
  */
 router.delete('/food/day', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const date = typeof req.query.date === 'string' ? req.query.date : DEMO_ANCHOR_DATE;
     const count = userId ? await clearDayForUser(date, userId) : clearDay(date);
     res.status(200).json({ cleared: count, date, message: `Cleared ${count} entries for ${date}` });
@@ -264,7 +264,7 @@ router.delete('/food/day', async (req: Request, res: Response) => {
  */
 router.post('/food/copy', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const from = typeof req.body?.from === 'string' ? req.body.from : '';
     const to = typeof req.body?.to === 'string' ? req.body.to : '';
     if (!from || !to) {

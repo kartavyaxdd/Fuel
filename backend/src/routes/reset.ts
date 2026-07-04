@@ -9,7 +9,7 @@ const router = Router();
 
 router.post('/reset', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     if (userId) {
       await resetStore(userId);
     } else {

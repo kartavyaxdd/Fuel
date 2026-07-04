@@ -82,14 +82,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -240,14 +239,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -262,14 +260,13 @@
         "operationId": "searchFoods",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "q",
@@ -328,14 +325,13 @@
         "operationId": "getFoodDay",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "date",
@@ -381,14 +377,13 @@
         "operationId": "clearFoodDay",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "date",
@@ -496,14 +491,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -518,14 +512,13 @@
         "operationId": "deleteLoggedFood",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "id",
@@ -650,14 +643,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -672,14 +664,13 @@
         "operationId": "getWeight",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "range",
@@ -730,14 +721,13 @@
         "operationId": "logWeight",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "range",
@@ -827,14 +817,13 @@
         "operationId": "getInsights",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "mode",
@@ -914,14 +903,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -958,14 +946,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       },
@@ -1034,14 +1021,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -1056,14 +1042,13 @@
         "operationId": "getCoachBriefing",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "mode",
@@ -1184,14 +1169,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -1274,14 +1258,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -1296,14 +1279,13 @@
         "operationId": "getFoodByBarcode",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "code",
@@ -1347,14 +1329,13 @@
         "operationId": "getRecentFoods",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "limit",
@@ -1443,14 +1424,13 @@
         "operationId": "getTrainingDay",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "date",
@@ -1539,14 +1519,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -1591,14 +1570,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       },
@@ -1694,14 +1672,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -1743,14 +1720,13 @@
         },
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ]
       }
@@ -1765,14 +1741,13 @@
         "operationId": "exportData",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           },
           {
             "name": "format",
@@ -1884,14 +1859,13 @@
         "operationId": "getUser",
         "parameters": [
           {
-            "name": "X-User-Id",
-            "in": "header",
+            "name": "userId",
+            "in": "query",
             "required": false,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             },
-            "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+            "description": "User identifier from POST /api/user/register."
           }
         ],
         "responses": {

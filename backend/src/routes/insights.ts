@@ -20,7 +20,7 @@ function normalizeTargetWeight(value: unknown): number {
 
 router.get('/insights', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const data = userId ? await buildInsightsForUser(userId) : buildInsights(buildDailyRecords(), { mode: normalizeMode(req.query.mode), targetWeight: normalizeTargetWeight(req.query.targetWeight) });
     res.json(data);
   } catch {

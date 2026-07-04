@@ -34,7 +34,7 @@ router.post('/user/register', async (_req, res) => {
  */
 router.get('/user', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     if (!userId) {
       res.status(401).json({ error: 'X-User-Id header is required' });
       return;

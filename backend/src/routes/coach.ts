@@ -78,7 +78,7 @@ router.post('/coach/chat', async (req, res) => {
   };
 
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     await chatWithCoach(message, sessionHistory ?? [], send, userId);
     send({ type: 'done' });
   } catch (e) {
@@ -106,7 +106,7 @@ router.post('/coach/chat/sync', async (req, res) => {
   }
 
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const reply = await chatWithCoach(message, sessionHistory ?? [], undefined, userId);
     res.json({ reply });
   } catch (e) {

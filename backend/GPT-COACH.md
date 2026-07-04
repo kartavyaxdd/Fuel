@@ -6,13 +6,14 @@ This API supports multiple users. Each user has their own food log, weight recor
 ### Registration flow:
 1. **New user** → Call `registerUser` (POST /api/user/register) to get a unique userId
 2. **Store the userId** in the conversation context — every user gets a different UUID
-3. **Pass userId on all requests** via the `X-User-Id` header (the "Headers" section in each action)
+3. **Pass userId on all requests** via the `userId` query parameter: `?userId=xxx-xxx`
 4. **Returning user** → Use the same userId from the conversation's stored context
-5. **Get user info** → Call `getUser` (GET /api/user) with the X-User-Id header to verify the user exists
+5. **Get user info** → Call `getUser?userId=xxx-xxx` to verify the user exists
 
 ### Important:
-- If you don't send `X-User-Id`, the API uses the DEFAULT shared user (no isolation).
-- ALWAYS register a user and pass the userId. Treat every new conversation as potentially a new user.
+- If you don't send `userId`, the API uses the DEFAULT shared user (no isolation).
+- ALWAYS register a user and pass the userId as a query parameter on every action call.
+- Treat every new conversation as potentially a new user.
 - If a user returns and you don't have their userId, ask them to provide it or create a new one.
 - User data persists in Supabase indefinitely.
 

@@ -8,7 +8,7 @@ const router = Router();
 
 router.get('/export', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const format = typeof req.query.format === 'string' ? req.query.format : 'json';
     const goal = userId ? await getGoalForUser(userId) : getGoal();
     const weight = userId ? await buildWeightDataForUser(180, userId) : buildWeightData(180); // max WeightRange

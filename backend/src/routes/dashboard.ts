@@ -10,7 +10,7 @@ const router = Router();
  */
 router.get('/dashboard', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const data = userId ? await buildDashboardForUser(userId) : buildDemoDashboard();
     res.status(200).json(data);
   } catch (error) {

@@ -6,7 +6,7 @@ const router = Router();
 /** GET /api/measurements — all entries oldest→newest + latest snapshot */
 router.get('/measurements', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     if (userId) {
       const measurements = await getMeasurementsForUser(userId);
       res.json({ measurements, latest: measurements.length > 0 ? measurements[measurements.length - 1] : null });
@@ -39,7 +39,7 @@ router.get('/measurements', async (req, res) => {
  */
 router.post('/measurements', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const body = req.body ?? {};
     const entry = userId ? await logMeasurementForUser(body, userId) : logMeasurement(body);
     res.status(201).json(entry);

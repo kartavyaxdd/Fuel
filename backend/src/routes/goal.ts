@@ -10,7 +10,7 @@ const router = Router();
  */
 router.get('/goal', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const goal = userId ? await getGoalForUser(userId) : getGoal();
     res.status(200).json(goal);
   } catch (error) {
@@ -25,7 +25,7 @@ router.get('/goal', async (req: Request, res: Response) => {
  */
 router.post('/goal', async (req: Request, res: Response) => {
   try {
-    const userId = req.headers['x-user-id'] as string | undefined;
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     const body = req.body as SetGoalRequest;
     const goal = userId ? await setGoalForUser(body, userId) : setGoal(body);
     res.status(200).json(goal);
