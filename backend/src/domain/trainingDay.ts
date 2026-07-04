@@ -1,5 +1,4 @@
 import { registerStore, scheduleSave, select, upsert } from './store';
-import { DEMO_ANCHOR_DATE } from './sampleData';
 
 /** Extra kcal added to target on training days. */
 export const TRAINING_DAY_BONUS_KCAL = 250;
@@ -14,7 +13,7 @@ export const TRAINING_DAY_BONUS_CARBS = 45;
 let state: Record<string, boolean> = {};
 
 export function isTrainingDay(date?: string): boolean {
-  const d = date ?? (() => DEMO_ANCHOR_DATE)();
+  const d = date ?? new Date().toISOString().slice(0, 10);
   return state[d] === true;
 }
 
@@ -26,7 +25,7 @@ export function setTrainingDay(date: string, value: boolean): boolean {
 }
 
 export function toggleTrainingDay(date?: string): boolean {
-  const d = date ?? (() => DEMO_ANCHOR_DATE)();
+  const d = date ?? new Date().toISOString().slice(0, 10);
   return setTrainingDay(d, !isTrainingDay(d));
 }
 

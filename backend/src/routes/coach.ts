@@ -76,7 +76,7 @@ router.post('/coach/chat', async (req, res) => {
   const safeHistory = (Array.isArray(sessionHistory) ? sessionHistory : []).filter(
     (h: unknown) =>
       typeof h === 'object' && h !== null &&
-      (h as { role: string }).role === 'user' &&
+      ['user', 'model'].includes((h as { role: string }).role) &&
       typeof (h as { text: string }).text === 'string',
   );
 
@@ -125,7 +125,7 @@ router.post('/coach/chat/sync', async (req, res) => {
   const safeHistory = (Array.isArray(sessionHistory) ? sessionHistory : []).filter(
     (h: unknown) =>
       typeof h === 'object' && h !== null &&
-      (h as { role: string }).role === 'user' &&
+      ['user', 'model'].includes((h as { role: string }).role) &&
       typeof (h as { text: string }).text === 'string',
   );
 

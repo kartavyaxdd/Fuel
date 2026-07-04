@@ -15,7 +15,6 @@ import { recommendedCalorieTarget } from './goals';
 import { computeAdaptiveExpenditure } from './energyModel';
 import { buildDailyRecords, buildDailyRecordsForUser } from './dailyRecords';
 import { isTrainingDay } from './trainingDay';
-import { DEMO_ANCHOR_DATE } from './sampleData';
 
 const SLOT_LABELS: Record<MealSlot, string> = {
   breakfast: 'Breakfast',
@@ -197,7 +196,8 @@ async function targetMacrosForUser(userId: string): Promise<Macros> {
   const goal = await getGoalForUser(userId);
   const history = await buildDailyRecordsForUser(userId);
   const { expenditureEstimate } = computeAdaptiveExpenditure(history);
-  const calorieTarget = recommendedCalorieTarget(expenditureEstimate, goal.mode, isTrainingDay(DEMO_ANCHOR_DATE));
+  const today = new Date().toISOString().slice(0, 10);
+  const calorieTarget = recommendedCalorieTarget(expenditureEstimate, goal.mode, isTrainingDay(today));
   return {
     calories: calorieTarget,
     protein: Math.round((calorieTarget * 0.3) / 4),
