@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import type { GoalMode } from '@nutrition/types';
 import { buildCoach } from '../domain/coach';
-import { buildDailyRecords } from '../domain/dailyRecords';
+import { buildDailyRecords, buildDailyRecordsForUser } from '../domain/dailyRecords';
+import { getGoal, getGoalForUser } from '../domain/userGoal';
 import { isCoachEnabled, chatWithCoach } from '../domain/geminiCoach';
 import { isTrainingDay } from '../domain/trainingDay';
 import { DEMO_ANCHOR_DATE } from '../domain/sampleData';
@@ -26,15 +27,23 @@ function normalizeTarget(value: unknown): number | undefined {
   return Number.isFinite(n) && n > 0 && n <= 20000 ? n : undefined;
 }
 
-router.get('/coach', (req, res) => {
+router.get('/coach', async (req, res) => {
   try {
-    const mode = normalizeMode(req.query.mode);
-    const targetWeight = normalizeTargetWeight(req.query.targetWeight);
-    const currentTarget = normalizeTarget(req.query.currentTarget);
-    res.json(
-      buildCoach(buildDailyRecords(), { mode, targetWeight, currentTarget, trainingDay: isTrainingDay(DEMO_ANCHOR_DATE) }),
-    );
-  } catch {
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+    if (userId) {
+      const goal = await getGoalForUser(userId);
+      const records = await buildDailyRecordsForUser(userId);
+      res.json(buildCoach(records, { mode: goal.mode, targetWeight: goal.targetWeight }));
+    } else {
+      const mode = normalizeMode(req.query.mode);
+      const targetWeight = normalizeTargetWeight(req.query.targetWeight);
+      const currentTarget = normalizeTarget(req.query.currentTarget);
+      res.json(
+        buildCoach(buildDailyRecords(), { mode, targetWeight, currentTarget, trainingDay: isTrainingDay(DEMO_ANCHOR_DATE) }),
+      );
+    }
+  } catch (e) {
+    console.error('[coach] error:', e);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

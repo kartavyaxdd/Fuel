@@ -391,12 +391,18 @@ export async function buildFoodDayForUser(date: string, userId: string): Promise
 export async function copyDayForUser(fromDate: string, toDate: string, loggedAt: string, userId: string): Promise<number> {
   const log = await getFoodLogForUser(userId);
   const source = log.get(fromDate) ?? [];
-  let copied = 0;
-  for (const e of source) {
-    await logFoodForUser(toDate, e.slot, e.foodId, e.quantity, loggedAt, userId);
-    copied++;
-  }
-  return copied;
+  if (source.length === 0) return 0;
+  const existing = log.get(toDate) ?? [];
+  const entries = source.map((e) => ({
+    ...e,
+    date: toDate,
+    id: `${toDate}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${e.slot}`,
+    loggedAt,
+  }));
+  log.set(toDate, [...existing, ...entries]);
+  const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
+  await upsert('foodLog', snapshot, userId);
+  return source.length;
 }
 
 export async function getRecentFoodsForUser(limit = 10, opts?: { slot?: string; maxDays?: number }, userId?: string): Promise<{ foodId: string; name: string; count: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }[]> {

@@ -8,7 +8,8 @@ function generateUUID(): string {
   return crypto.randomUUID();
 }
 
-/** In-memory fallback for username_index lookups when Supabase is unavailable. */
+/** In-memory fallbacks for when Supabase is unavailable (test/dev). */
+const inMemoryUsers = new Map<string, { id: string; createdAt: string; username: string | null }>();
 const inMemoryUsernameIndex = new Map<string, { userId: string; createdAt: string }>();
 
 /**
@@ -37,6 +38,7 @@ router.post('/user/register', async (req, res) => {
     const userId = generateUUID();
     const now = new Date().toISOString();
     await upsert('user', { id: userId, createdAt: now, username: username ?? null }, userId);
+    inMemoryUsers.set(userId, { id: userId, createdAt: now, username: username ?? null });
 
     if (username) {
       await upsert('username_index', { userId, username, createdAt: now }, username);
@@ -63,7 +65,7 @@ router.get('/user', async (req, res) => {
       res.status(401).json({ error: 'userId query parameter is required' });
       return;
     }
-    const data = await select('user', userId);
+    const data = await select('user', userId) ?? inMemoryUsers.get(userId) ?? null;
     if (!data) {
       res.status(404).json({ error: 'User not found. Register first via POST /api/user/register.' });
       return;
