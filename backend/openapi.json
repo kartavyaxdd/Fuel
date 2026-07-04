@@ -940,6 +940,85 @@
         }
       }
     },
+    "/measurements": {
+      "get": {
+        "tags": ["Progress"],
+        "summary": "Get body measurements",
+        "description": "Returns all logged body measurements (waist, chest, arms, hips, thigh, BF%) oldest→newest plus the latest snapshot.",
+        "operationId": "getMeasurements",
+        "responses": {
+          "200": {
+            "description": "Measurements list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "measurements": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Measurement" }
+                    },
+                    "latest": {
+                      "oneOf": [
+                        { "$ref": "#/components/schemas/Measurement" },
+                        { "type": "null" }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Progress"],
+        "summary": "Log a body measurement",
+        "description": "Log circumference measurements (cm). If waist + neck + height are provided, body fat % is auto-estimated via the US Navy formula. Overwrites any existing entry for the same date.",
+        "operationId": "logMeasurement",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "date": { "type": "string", "format": "date", "description": "ISO date. Default: 2026-07-02." },
+                  "waist": { "type": "number", "description": "Waist circumference in cm." },
+                  "hips": { "type": "number", "description": "Hip circumference in cm." },
+                  "chest": { "type": "number", "description": "Chest circumference in cm." },
+                  "armLeft": { "type": "number", "description": "Left arm circumference in cm." },
+                  "armRight": { "type": "number", "description": "Right arm circumference in cm." },
+                  "thigh": { "type": "number", "description": "Thigh circumference in cm." },
+                  "neck": { "type": "number", "description": "Neck circumference in cm — needed for Navy BF% auto-calculation." },
+                  "height": { "type": "number", "description": "Height in cm — needed for Navy BF% auto-calculation." },
+                  "sex": { "type": "string", "enum": ["male", "female"], "description": "Sex for Navy BF% formula. Default: male." },
+                  "bodyFat": { "type": "number", "description": "Body fat % if known directly (overrides auto-calculation)." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Measurement logged",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Measurement" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/reset": {
       "post": {
         "tags": [
@@ -1058,6 +1137,19 @@
             "type": "string",
             "description": "Error message."
           }
+        }
+      },
+      "Measurement": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "waist": { "type": ["number", "null"], "description": "cm" },
+          "hips": { "type": ["number", "null"], "description": "cm" },
+          "chest": { "type": ["number", "null"], "description": "cm" },
+          "armLeft": { "type": ["number", "null"], "description": "cm" },
+          "armRight": { "type": ["number", "null"], "description": "cm" },
+          "thigh": { "type": ["number", "null"], "description": "cm" },
+          "bodyFat": { "type": ["number", "null"], "description": "Body fat percentage. Auto-estimated via US Navy formula if waist+neck+height provided." }
         }
       },
       "GoalMode": {

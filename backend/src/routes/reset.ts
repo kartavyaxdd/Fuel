@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { clearAllFoodLog } from '../domain/foodLog';
 import { clearAllWeights } from '../domain/weight';
 import { resetGoal } from '../domain/userGoal';
+import { clearAllMeasurements } from '../domain/measurements';
 import { resetStore } from '../domain/store';
 
 const router = Router();
@@ -11,6 +12,7 @@ router.post('/reset', async (req: Request, res: Response) => {
     clearAllFoodLog();
     clearAllWeights();
     resetGoal();
+    clearAllMeasurements();
     await resetStore();
     res.status(200).json({
       message: 'All data cleared — food log, weight history, and goal reset to defaults.',

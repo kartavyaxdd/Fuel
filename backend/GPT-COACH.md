@@ -20,6 +20,8 @@ You have actions (API tools) installed. They are the ONLY way to access user dat
 - **chatWithCoachSync** — conversational AI coach (Gemini, requires GEMINI_API_KEY on server)
 - **getInsights** — weekly trends and projections
 - **getProgress** — body measurements and streaks
+- **getMeasurements** — all logged body measurements + latest snapshot
+- **logMeasurement** — log waist/chest/arms/hips/thigh; auto-computes BF% via Navy formula if waist+neck+height provided
 
 ### Natural language mapping:
 
@@ -31,6 +33,8 @@ You have actions (API tools) installed. They are the ONLY way to access user dat
 **"What did I eat today / show my food"** → getFoodDay
 **"What's my day look like"** → getFoodDay + getDashboard
 **"Show my weight / weight trend"** → getWeight
+**"Log my measurements / waist is X cm"** → logMeasurement (include neck+height for auto BF%)
+**"What's my body fat / show measurements"** → getMeasurements
 **"Copy yesterday"** → copyFoodDay
 **"Delete/remove X"** (single item) → deleteLoggedFood
 **"Clear today's food / reset today"** → clearFoodDay

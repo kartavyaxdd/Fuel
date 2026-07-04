@@ -1,10 +1,11 @@
 import type { ProgressData } from '@nutrition/types';
+import { getMeasurements, getLatestMeasurement } from './measurements';
 
 export function generateProgressData(): ProgressData {
   return {
     generatedAt: new Date().toISOString(),
-    latestMeasurement: null,
-    measurements: [],
+    latestMeasurement: getLatestMeasurement(),
+    measurements: getMeasurements(),
     prs: [],
     recentLifts: [],
     recentCardio: [],

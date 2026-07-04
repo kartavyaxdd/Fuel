@@ -9,6 +9,7 @@ import { computeWeightTrend, computeAdaptiveExpenditure } from './energyModel';
 import { buildDailyRecords } from './dailyRecords';
 import { DEMO_ANCHOR_DATE } from './sampleData';
 import { estimateEtaWeeks } from './goals';
+import { getLatestMeasurement } from './measurements';
 
 const MODEL_NAME = 'gemini-2.5-flash';
 
@@ -43,9 +44,11 @@ function demoToday(): string {
 interface CoachContext {
   mode: string;
   targetWeight: number;
+  targetBodyFat: number | undefined;
   startWeight: number;
   startDate: string;
   currentWeight: number | null;
+  currentBodyFat: number | null;
   weeksToGoal: number | string;
   avgIntake: number | null;
   avgExpenditure: number | null;
@@ -60,6 +63,7 @@ interface CoachContext {
   weeklyWeightHistory: string;
   intakeHistory: string;
   confidence: number;
+  latestMeasurements: string;
 }
 
 function buildCoachContext(): CoachContext {
@@ -97,12 +101,27 @@ function buildCoachContext(): CoachContext {
 
   const { expenditureEstimate, confidence } = computeAdaptiveExpenditure(history);
 
+  // Latest body measurements
+  const latestM = getLatestMeasurement();
+  const latestMeasurements = latestM
+    ? [
+        latestM.date,
+        latestM.waist != null ? `waist: ${latestM.waist} cm` : null,
+        latestM.chest != null ? `chest: ${latestM.chest} cm` : null,
+        latestM.armLeft != null ? `arm: ${latestM.armLeft} cm` : null,
+        latestM.hips != null ? `hips: ${latestM.hips} cm` : null,
+        latestM.bodyFat != null ? `BF%: ${latestM.bodyFat}%` : null,
+      ].filter(Boolean).join(' | ')
+    : 'No measurements logged yet.';
+
   return {
     mode: goal.mode,
     targetWeight: goal.targetWeight,
+    targetBodyFat: goal.targetBodyFat,
     startWeight: goal.startWeight,
     startDate: goal.startDate,
     currentWeight,
+    currentBodyFat: latestM?.bodyFat ?? null,
     weeksToGoal,
     avgIntake: coachData.checkIn.avgIntake,
     avgExpenditure: coachData.checkIn.avgExpenditure ?? expenditureEstimate,
@@ -117,6 +136,7 @@ function buildCoachContext(): CoachContext {
     weeklyWeightHistory,
     intakeHistory,
     confidence,
+    latestMeasurements,
   };
 }
 
@@ -138,17 +158,31 @@ function buildSystemPrompt(): string {
   const isOffTrack = ctx.weightTrendDelta > 0 && ctx.mode === 'fat-loss';
   const isBrutal = isSlipping || isOffTrack;
 
-  return `You are BRUTAL COACH — an elite, no-bullshit AI nutrition coach powered by the user's REAL calorie and weight data. You are NOT a generic assistant. You have the user's full training data and you use it to hold them accountable with precision.
+  const aestheticGoal = ctx.targetBodyFat != null;
+  const bfStatus = ctx.currentBodyFat != null
+    ? `${ctx.currentBodyFat}% → target ${ctx.targetBodyFat ?? '?'}%`
+    : ctx.targetBodyFat != null
+      ? `Target: ${ctx.targetBodyFat}% (log measurements to track)`
+      : null;
+
+  return `You are BRUTAL COACH — an elite, no-bullshit AI nutrition coach powered by the user's REAL calorie, weight, and body composition data. You are NOT a generic assistant. You hold the user accountable with precision.
+
+${aestheticGoal ? `⚡ AESTHETIC PHYSIQUE FOCUS — This user's primary goal is body composition, not just weight. They want to be lean, muscular, and defined — not just lighter. Track protein and body fat % as the primary metrics. Weight on the scale is secondary to how they look and what the measurements show.` : ''}
 
 ═══════════════════════════════════════════
 USER'S GOAL & PROGRESS
 ═══════════════════════════════════════════
 Goal mode:        ${ctx.mode}
-Goal weight:      ${ctx.targetWeight} kg
+Goal weight:      ${ctx.targetWeight} kg${ctx.targetBodyFat != null ? `\nTarget body fat:  ${ctx.targetBodyFat}%` : ''}
 Start weight:     ${ctx.startWeight} kg on ${ctx.startDate} (${daysOnPlan} days ago)
-Current trend:    ${ctx.currentWeight?.toFixed(1) ?? '?'} kg
-Total progress:   ${progressKg} kg lost so far
+Current trend:    ${ctx.currentWeight?.toFixed(1) ?? '?'} kg${bfStatus ? `\nCurrent body fat: ${bfStatus}` : ''}
+Total progress:   ${progressKg} kg so far
 ETA to goal:      ${ctx.weeksToGoal} weeks
+
+═══════════════════════════════════════════
+LATEST BODY MEASUREMENTS
+═══════════════════════════════════════════
+${ctx.latestMeasurements}
 
 ═══════════════════════════════════════════
 METABOLIC SNAPSHOT (derived from training data)
@@ -162,7 +196,7 @@ Model confidence:        ${Math.round(ctx.confidence * 100)}%
 
 RECOMMENDED TARGETS:
   Calories: ${ctx.recommended} kcal/day
-  Protein:  ${ctx.protein}g
+  Protein:  ${ctx.protein}g  ← NON-NEGOTIABLE for muscle retention
   Carbs:    ${ctx.carbs}g
   Fat:      ${ctx.fat}g
 
@@ -181,7 +215,7 @@ COACH'S READ ON THE USER RIGHT NOW
 ═══════════════════════════════════════════
 ${ctx.verdict}
 
-${isBrutal ? `⚠️ USER IS SLIPPING — BRUTAL MODE ON. Adherence: ${adherencePct}%. Weight trend going WRONG direction. Do NOT coddle.` : `✅ User is on track. Be firm but encouraging.`}
+${isBrutal ? `⚠️ USER IS SLIPPING — BRUTAL MODE ON. Adherence: ${adherencePct}%. Do NOT coddle.` : `✅ User is on track. Be firm but encouraging.`}
 
 ═══════════════════════════════════════════
 TONE RULES (NON-NEGOTIABLE)
@@ -189,13 +223,21 @@ TONE RULES (NON-NEGOTIABLE)
 ${isBrutal ? `
 BRUTAL — The user is failing. You are ALLOWED and EXPECTED to:
 - Swear (f*ck, sh*t, damn — not slurs)
-- Shame specific behaviors ("You ate 2800 kcal three days this week. That's why you're not losing weight.")
-- Reference SPECIFIC data from their history above
+- Shame specific behaviors with SPECIFIC data ("You ate 2800 kcal three days this week. That's why you're not losing fat.")
 - Be blunt: "Stop making excuses. Hit your target today."
 - Refuse to sugarcoat
 ` : `
 FIRM — User is on track. Be direct, precise, no fluff. Credit real progress but push for more.
 `}
+${aestheticGoal ? `
+AESTHETIC COACHING RULES:
+- PROTEIN IS THE PRIORITY. Never let them slip below their protein target. Losing muscle while cutting = failure.
+- When scale weight stalls but waist measurement drops, that's a WIN. Say so explicitly.
+- Remind them: 10-12% BF is achievable but requires consistency for months, not weeks.
+- If they're close to target BF%, protect the muscle — drop deficit, not protein.
+- Reference body fat % and measurements, not just weight.
+- Never say "lose weight" — say "drop body fat" or "get leaner".
+` : ''}
 - NEVER use emojis
 - NEVER say "Let's" or "We can" — address the user as "you"
 - Responses: 1-3 short paragraphs max. Be dense, not verbose.

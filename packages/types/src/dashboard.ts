@@ -63,6 +63,12 @@ export interface UserGoal {
   startWeight: number;
   /** ISO date the goal started, e.g. "2026-07-03". */
   startDate: string;
+  /** Target body fat percentage (e.g. 12 for 12%). Aesthetic physique focus. */
+  targetBodyFat?: number;
+  /** User height in cm — used for Navy BF% auto-calculation. */
+  height?: number;
+  /** Biological sex for Navy BF% formula. */
+  sex?: 'male' | 'female';
 }
 
 /** Request body to set/update the active goal. */
@@ -71,6 +77,9 @@ export interface SetGoalRequest {
   targetWeight: number;
   startWeight?: number;
   startDate?: string;
+  targetBodyFat?: number;
+  height?: number;
+  sex?: 'male' | 'female';
 }
 
 /** The adaptive energy model's current read on the user. */

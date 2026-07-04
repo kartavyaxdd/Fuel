@@ -56,7 +56,15 @@ export function setGoal(req: SetGoalRequest): UserGoal {
       ? req.startDate
       : GOAL.startDate;
 
-  GOAL = { mode: req.mode, targetWeight, startWeight, startDate };
+  GOAL = {
+    mode: req.mode,
+    targetWeight,
+    startWeight,
+    startDate,
+    ...(req.targetBodyFat != null ? { targetBodyFat: Number(req.targetBodyFat) } : {}),
+    ...(req.height != null ? { height: Number(req.height) } : {}),
+    ...(req.sex != null ? { sex: req.sex } : {}),
+  };
   scheduleSave();
   return getGoal();
 }
@@ -77,6 +85,9 @@ registerStore(
         typeof d.startWeight === 'number' ? d.startWeight : DEFAULT_GOAL.startWeight,
       startDate:
         typeof d.startDate === 'string' ? d.startDate : DEFAULT_GOAL.startDate,
+      ...(typeof d.targetBodyFat === 'number' ? { targetBodyFat: d.targetBodyFat } : {}),
+      ...(typeof d.height === 'number' ? { height: d.height } : {}),
+      ...(typeof d.sex === 'string' ? { sex: d.sex as 'male' | 'female' } : {}),
     };
   },
 );
