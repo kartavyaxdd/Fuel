@@ -11154,5 +11154,27 @@ export const INDIAN_FOOD_DB: FoodItem[] = [
     "protein": 18.3,
     "carbs": 20,
     "fat": 22.2
+  },
+  {
+    "id": "indb-ASC516",
+    "name": "Aloo chana sabzi (Potato chickpea dry curry)",
+    "source": "database",
+    "servingSize": 1,
+    "servingUnit": "katori",
+    "calories": 140,
+    "protein": 5,
+    "carbs": 16,
+    "fat": 6
+  },
+  {
+    "id": "indb-ASC517",
+    "name": "Chana sabzi (Chickpea curry)",
+    "source": "database",
+    "servingSize": 1,
+    "servingUnit": "katori",
+    "calories": 150,
+    "protein": 5.5,
+    "carbs": 18,
+    "fat": 6
   }
 ];
