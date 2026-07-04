@@ -7,7 +7,7 @@ import type {
 } from '@nutrition/types';
 import { WEIGHT_RANGES } from '@nutrition/types';
 import { computeWeightTrend, type DailyRecord } from './energyModel';
-import { registerStore, scheduleSave } from './store';
+import { registerStore, scheduleSave, select, upsert } from './store';
 
 /**
  * In-memory weigh-in store keyed by ISO date. Starts empty — users log
@@ -100,6 +100,43 @@ export function buildWeightData(range: WeightRange): WeightData {
     stats: computeStats(series, range),
     unit: 'kg',
   };
+}
+
+export async function getWeightRecordsForUser(userId: string): Promise<DailyRecord[]> {
+  const raw = await select('weight', userId) as Record<string, number> | null;
+  const weights = new Map(Object.entries(raw ?? {}));
+  return [...weights.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, weight]) => ({ date, intake: null, weight }));
+}
+
+export async function logWeightForUser(req: LogWeightRequest, userId: string): Promise<void> {
+  const raw = await select('weight', userId) as Record<string, number> | null;
+  const weights = raw ?? {};
+  weights[req.date] = req.weight;
+  await upsert('weight', weights, userId);
+}
+
+export async function buildWeightDataForUser(range: WeightRange, userId: string): Promise<WeightData> {
+  const records = await getWeightRecordsForUser(userId);
+  const fullTrend = computeWeightTrend(records);
+  const series = fullTrend.slice(-range).map((p) => ({
+    date: p.date,
+    scale: p.scale,
+    trend: round(p.trend),
+  }));
+  const latestDate = records.length ? records[records.length - 1].date : '';
+  return {
+    date: latestDate,
+    range,
+    series,
+    stats: computeStats(series, range),
+    unit: 'kg',
+  };
+}
+
+export async function clearAllWeightsForUser(userId: string): Promise<void> {
+  await upsert('weight', {}, userId);
 }
 
 /** Persist the weigh-in store as a date→weight map. */

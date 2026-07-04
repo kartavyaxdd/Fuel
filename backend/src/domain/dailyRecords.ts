@@ -1,6 +1,6 @@
 import type { DailyRecord } from './energyModel';
-import { getDailyIntakes } from './foodLog';
-import { getWeightRecords } from './weight';
+import { getDailyIntakes, getFoodLogForUser } from './foodLog';
+import { getWeightRecords, getWeightRecordsForUser } from './weight';
 
 /**
  * Build the canonical DailyRecord[] from the user's real stores.
@@ -19,6 +19,26 @@ export function buildDailyRecords(): DailyRecord[] {
     ...weightByDate.keys(),
   ]);
 
+  return [...allDates].sort().map(date => ({
+    date,
+    intake: intakeByDate.get(date) ?? null,
+    weight: weightByDate.get(date) ?? null,
+  }));
+}
+
+export async function buildDailyRecordsForUser(userId: string): Promise<DailyRecord[]> {
+  const log = await getFoodLogForUser(userId);
+  const intakeByDate = new Map<string, number>();
+  for (const [date, entries] of log) {
+    intakeByDate.set(date, entries.reduce((s, e) => s + e.calories, 0));
+  }
+  const weightByDate = new Map(
+    (await getWeightRecordsForUser(userId)).map(r => [r.date, r.weight!]),
+  );
+  const allDates = new Set<string>([
+    ...intakeByDate.keys(),
+    ...weightByDate.keys(),
+  ]);
   return [...allDates].sort().map(date => ({
     date,
     intake: intakeByDate.get(date) ?? null,

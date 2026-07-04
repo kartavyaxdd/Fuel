@@ -43,6 +43,10 @@
     {
       "name": "Data",
       "description": "Data management (reset, export)"
+    },
+    {
+      "name": "User",
+      "description": "User registration and identity"
     }
   ],
   "paths": {
@@ -1378,9 +1382,76 @@
           }
         }
       }
+    },
+    "/user/register": {
+      "post": {
+        "tags": ["User"],
+        "summary": "Register a new user",
+        "description": "Creates a new user ID (UUID). Store this ID and send it as X-User-Id header on all subsequent requests.",
+        "operationId": "registerUser",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "New user created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["userId", "createdAt"],
+                  "properties": {
+                    "userId": { "type": "string", "format": "uuid", "description": "Unique user identifier. Send as X-User-Id header on all requests." },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/user": {
+      "get": {
+        "tags": ["User"],
+        "summary": "Get current user info",
+        "description": "Returns user info for the authenticated user. Requires X-User-Id header.",
+        "operationId": "getUser",
+        "parameters": [
+          { "$ref": "#/components/parameters/UserIdHeader" }
+        ],
+        "responses": {
+          "200": {
+            "description": "User info",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["userId", "createdAt"],
+                  "properties": {
+                    "userId": { "type": "string", "format": "uuid" },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Error" },
+          "404": { "$ref": "#/components/responses/Error" },
+          "500": { "$ref": "#/components/responses/Error" }
+        }
+      }
     }
   },
   "components": {
+    "parameters": {
+      "UserIdHeader": {
+        "name": "X-User-Id",
+        "in": "header",
+        "required": false,
+        "schema": { "type": "string", "format": "uuid" },
+        "description": "User identifier from POST /api/user/register. If omitted, uses the default shared user."
+      }
+    },
     "schemas": {
       "ErrorResponse": {
         "type": "object",

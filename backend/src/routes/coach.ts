@@ -69,12 +69,17 @@ router.post('/coach/chat', async (req, res) => {
   res.setHeader('Connection', 'keep-alive');
   res.flushHeaders();
 
+  let aborted = false;
+  req.on('close', () => { aborted = true; });
+
   const send = (event: object) => {
+    if (aborted) return;
     res.write(`data: ${JSON.stringify(event)}\n\n`);
   };
 
   try {
-    await chatWithCoach(message, sessionHistory ?? [], send);
+    const userId = req.headers['x-user-id'] as string | undefined;
+    await chatWithCoach(message, sessionHistory ?? [], send, userId);
     send({ type: 'done' });
   } catch (e) {
     send({ type: 'error', message: e instanceof Error ? e.message : 'Internal server error' });
@@ -101,7 +106,8 @@ router.post('/coach/chat/sync', async (req, res) => {
   }
 
   try {
-    const reply = await chatWithCoach(message, sessionHistory ?? [], undefined);
+    const userId = req.headers['x-user-id'] as string | undefined;
+    const reply = await chatWithCoach(message, sessionHistory ?? [], undefined, userId);
     res.json({ reply });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'Internal server error' });

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import type { SetGoalRequest } from '@nutrition/types';
-import { getGoal, setGoal } from '../domain/userGoal';
+import { getGoal, getGoalForUser, setGoal, setGoalForUser } from '../domain/userGoal';
 
 const router = Router();
 
@@ -8,9 +8,11 @@ const router = Router();
  * GET /api/goal
  * Returns the active user goal (mode, target/start weight, start date).
  */
-router.get('/goal', (_req: Request, res: Response) => {
+router.get('/goal', async (req: Request, res: Response) => {
   try {
-    res.status(200).json(getGoal());
+    const userId = req.headers['x-user-id'] as string | undefined;
+    const goal = userId ? await getGoalForUser(userId) : getGoal();
+    res.status(200).json(goal);
   } catch (error) {
     console.error('Error reading goal:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -21,10 +23,11 @@ router.get('/goal', (_req: Request, res: Response) => {
  * POST /api/goal
  * Set (overwrite) the active goal from an onboarding submission.
  */
-router.post('/goal', (req: Request, res: Response) => {
+router.post('/goal', async (req: Request, res: Response) => {
   try {
+    const userId = req.headers['x-user-id'] as string | undefined;
     const body = req.body as SetGoalRequest;
-    const goal = setGoal(body);
+    const goal = userId ? await setGoalForUser(body, userId) : setGoal(body);
     res.status(200).json(goal);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid goal';

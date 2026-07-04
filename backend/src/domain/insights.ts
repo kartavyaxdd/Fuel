@@ -16,6 +16,8 @@ import {
   type DailyRecord,
 } from './energyModel';
 import { estimateEtaWeeks, recommendedCalorieTarget } from './goals';
+import { buildDailyRecordsForUser } from './dailyRecords';
+import { getGoalForUser } from './userGoal';
 
 export interface BuildInsightsOptions {
   mode?: GoalMode;
@@ -361,6 +363,12 @@ export function buildInsights(
   };
 
   return { ...base, highlights: buildHighlights(base) };
+}
+
+export async function buildInsightsForUser(userId: string): Promise<InsightsData> {
+  const goal = await getGoalForUser(userId);
+  const records = await buildDailyRecordsForUser(userId);
+  return buildInsights(records, { mode: goal.mode, targetWeight: goal.targetWeight });
 }
 
 export { KCAL_PER_KG };

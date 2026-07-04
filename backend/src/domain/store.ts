@@ -3,13 +3,14 @@ import { supabase, supabaseEnabled } from '../db';
 /**
  * Persistence layer — stores domain snapshots in Supabase.
  *
- * Domain stores (foodLog, weight, …) register a named snapshot provider via
- * `registerStore()`. On boot the server calls `loadAll()` to rehydrate every
- * provider from Supabase; after each mutation a provider calls
- * `scheduleSave()`, which debounces a single upsert of all providers.
+ * Two access patterns:
+ *   1. Provider system (global/default user) — domain stores register a named
+ *      provider; loadAll() rehydrates at boot; scheduleSave() debounces writes.
+ *   2. User-scoped (multi-user) — select/upsert/deleteKey with a userId param,
+ *      which prefixes the key as `userId:key` for per-user namespacing.
  *
- * When Supabase env vars are missing the app runs in-memory only (good for
- * local dev / test).  Under NODE_ENV=test persistence is disabled entirely.
+ * When Supabase env vars are missing the app runs in-memory only.
+ * Under NODE_ENV=test persistence is disabled entirely.
  */
 
 const ENABLED = process.env.NODE_ENV !== 'test' && supabaseEnabled;
@@ -22,7 +23,6 @@ interface Provider {
 
 const providers = new Map<string, Provider>();
 
-// Tracks the most recently dispatched write so flushNow() can await it.
 let lastWrite: Promise<void> = Promise.resolve();
 
 /** Register a domain store's snapshot provider. Called at module load. */
@@ -32,6 +32,48 @@ export function registerStore(
   importFn: (data: unknown) => void,
 ): void {
   providers.set(name, { name, export: exportFn, import: importFn });
+}
+
+/** Prefix a key with userId for per-user namespacing. */
+export function scopedKey(key: string, userId?: string): string {
+  return userId ? `${userId}:${key}` : key;
+}
+
+/** Read user-scoped data directly from Supabase (bypasses provider cache). */
+export async function select(key: string, userId?: string): Promise<unknown> {
+  const actualKey = scopedKey(key, userId);
+  if (!ENABLED || !supabase) {
+    // Fallback to provider in-memory state for default user
+    const p = providers.get(key);
+    return p ? p.export() : null;
+  }
+  const { data, error } = await supabase
+    .from('store')
+    .select('value')
+    .eq('key', actualKey)
+    .single();
+  if (error && error.code !== 'PGRST116') {
+    console.error(`[store] select failed for "${actualKey}":`, error.message);
+  }
+  return data?.value ?? null;
+}
+
+/** Write user-scoped data directly to Supabase. */
+export async function upsert(key: string, value: unknown, userId?: string): Promise<void> {
+  const actualKey = scopedKey(key, userId);
+  if (!ENABLED || !supabase) return;
+  const { error } = await supabase
+    .from('store')
+    .upsert({ key: actualKey, value: JSON.stringify(value) }, { onConflict: 'key', ignoreDuplicates: false });
+  if (error) console.error(`[store] upsert failed for "${actualKey}":`, error.message);
+}
+
+/** Delete a single user-scoped key from Supabase. */
+export async function deleteKey(key: string, userId?: string): Promise<void> {
+  if (!ENABLED || !supabase) return;
+  const actualKey = scopedKey(key, userId);
+  const { error } = await supabase.from('store').delete().eq('key', actualKey);
+  if (error) console.error(`[store] delete failed for "${actualKey}":`, error.message);
 }
 
 /** Rehydrate every registered provider from Supabase. */
@@ -79,16 +121,25 @@ export function scheduleSave(): void {
   timer = setTimeout(() => {
     timer = null;
     lastWrite = persistNow();
-    lastWrite.catch(() => {});
+    lastWrite.catch(() => { /* swallow */ });
   }, SAVE_DEBOUNCE_MS);
   if (typeof timer.unref === 'function') timer.unref();
 }
 
-/** Delete all rows so next boot uses fresh seed data. */
-export async function resetStore(): Promise<void> {
+/** Delete all rows, or a single user's rows when userId is given. */
+export async function resetStore(userId?: string): Promise<void> {
   if (!ENABLED || !supabase) return;
-  const { error } = await supabase.from('store').delete().neq('key', '');
-  if (error) console.error('[store] reset failed:', error.message);
+  if (userId) {
+    const prefix = `${userId}:`;
+    const { error } = await supabase
+      .from('store')
+      .delete()
+      .like('key', `${prefix}%`);
+    if (error) console.error('[store] reset failed:', error.message);
+  } else {
+    const { error } = await supabase.from('store').delete().neq('key', '');
+    if (error) console.error('[store] reset failed:', error.message);
+  }
 }
 
 /** Flush any pending write immediately (used on graceful shutdown). */

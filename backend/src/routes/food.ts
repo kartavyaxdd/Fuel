@@ -5,11 +5,17 @@ import { searchFoodsLive } from '../domain/foodSearch';
 import { analyzeFoodPhoto } from '../domain/geminiCoach';
 import {
   buildFoodDay,
+  buildFoodDayForUser,
   clearDay,
+  clearDayForUser,
   copyDay,
+  copyDayForUser,
   deleteLoggedFood,
+  deleteLoggedFoodForUser,
   logFood,
+  logFoodForUser,
   getRecentFoods,
+  getRecentFoodsForUser,
 } from '../domain/foodLog';
 import { DEMO_ANCHOR_DATE } from '../domain/sampleData';
 
@@ -86,14 +92,16 @@ router.get('/food/barcode', async (req: Request, res: Response) => {
  * GET /api/food/recent?limit=N
  * Returns top-N most frequently logged foods across all dates.
  */
-router.get('/food/recent', (req: Request, res: Response) => {
+router.get('/food/recent', async (req: Request, res: Response) => {
   try {
+    const userId = req.headers['x-user-id'] as string | undefined;
     const limitRaw = Number(req.query.limit);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 50) : 10;
     const slot = typeof req.query.slot === 'string' ? req.query.slot : undefined;
     const maxDaysRaw = Number(req.query.maxDays);
     const maxDays = Number.isFinite(maxDaysRaw) && maxDaysRaw > 0 ? maxDaysRaw : undefined;
-    res.status(200).json({ items: getRecentFoods(limit, { slot, maxDays }) });
+    const items = userId ? await getRecentFoodsForUser(limit, { slot, maxDays }, userId) : getRecentFoods(limit, { slot, maxDays });
+    res.status(200).json({ items });
   } catch (error) {
     console.error('Error getting recent foods:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -160,10 +168,12 @@ router.post('/food/analyze-photo', async (req: Request, res: Response) => {
  * GET /api/food/day?date=YYYY-MM-DD
  * The full day view: targets, consumed, remaining, and meal groups.
  */
-router.get('/food/day', (req: Request, res: Response) => {
+router.get('/food/day', async (req: Request, res: Response) => {
   try {
+    const userId = req.headers['x-user-id'] as string | undefined;
     const date = typeof req.query.date === 'string' ? req.query.date : DEMO_ANCHOR_DATE;
-    res.status(200).json(buildFoodDay(date));
+    const day = userId ? await buildFoodDayForUser(date, userId) : buildFoodDay(date);
+    res.status(200).json(day);
   } catch (error) {
     console.error('Error building food day:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -174,8 +184,9 @@ router.get('/food/day', (req: Request, res: Response) => {
  * POST /api/food/log
  * Body: LogFoodRequest. Appends an entry and returns the updated FoodDay.
  */
-router.post('/food/log', (req: Request, res: Response) => {
+router.post('/food/log', async (req: Request, res: Response) => {
   try {
+    const userId = req.headers['x-user-id'] as string | undefined;
     const body = req.body as Partial<LogFoodRequest>;
     if (
       typeof body.date !== 'string' ||
@@ -188,8 +199,13 @@ router.post('/food/log', (req: Request, res: Response) => {
       return;
     }
     const loggedAt = new Date().toISOString();
-    logFood(body.date, body.slot, body.foodId, body.quantity, loggedAt);
-    res.status(201).json(buildFoodDay(body.date));
+    if (userId) {
+      await logFoodForUser(body.date, body.slot, body.foodId, body.quantity, loggedAt, userId);
+      res.status(201).json(await buildFoodDayForUser(body.date, userId));
+    } else {
+      logFood(body.date, body.slot, body.foodId, body.quantity, loggedAt);
+      res.status(201).json(buildFoodDay(body.date));
+    }
   } catch (error) {
     console.error('Error logging food:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
@@ -201,15 +217,25 @@ router.post('/food/log', (req: Request, res: Response) => {
  * DELETE /api/food/log/:id?date=YYYY-MM-DD
  * Removes an entry and returns the updated FoodDay.
  */
-router.delete('/food/log/:id', (req: Request, res: Response) => {
+router.delete('/food/log/:id', async (req: Request, res: Response) => {
   try {
+    const userId = req.headers['x-user-id'] as string | undefined;
     const date = typeof req.query.date === 'string' ? req.query.date : DEMO_ANCHOR_DATE;
-    const removed = deleteLoggedFood(date, req.params.id);
-    if (!removed) {
-      res.status(404).json({ error: 'Entry not found' });
-      return;
+    if (userId) {
+      const removed = await deleteLoggedFoodForUser(date, req.params.id, userId);
+      if (!removed) {
+        res.status(404).json({ error: 'Entry not found' });
+        return;
+      }
+      res.status(200).json(await buildFoodDayForUser(date, userId));
+    } else {
+      const removed = deleteLoggedFood(date, req.params.id);
+      if (!removed) {
+        res.status(404).json({ error: 'Entry not found' });
+        return;
+      }
+      res.status(200).json(buildFoodDay(date));
     }
-    res.status(200).json(buildFoodDay(date));
   } catch (error) {
     console.error('Error deleting logged food:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -220,10 +246,11 @@ router.delete('/food/log/:id', (req: Request, res: Response) => {
  * DELETE /api/food/day?date=YYYY-MM-DD
  * Clear all logged entries for a date.
  */
-router.delete('/food/day', (req: Request, res: Response) => {
+router.delete('/food/day', async (req: Request, res: Response) => {
   try {
+    const userId = req.headers['x-user-id'] as string | undefined;
     const date = typeof req.query.date === 'string' ? req.query.date : DEMO_ANCHOR_DATE;
-    const count = clearDay(date);
+    const count = userId ? await clearDayForUser(date, userId) : clearDay(date);
     res.status(200).json({ cleared: count, date, message: `Cleared ${count} entries for ${date}` });
   } catch (error) {
     console.error('Error clearing day:', error);
@@ -235,16 +262,22 @@ router.delete('/food/day', (req: Request, res: Response) => {
  * POST /api/food/copy
  * Body: { from: string; to: string }. Copies a day's entries ("copy yesterday").
  */
-router.post('/food/copy', (req: Request, res: Response) => {
+router.post('/food/copy', async (req: Request, res: Response) => {
   try {
+    const userId = req.headers['x-user-id'] as string | undefined;
     const from = typeof req.body?.from === 'string' ? req.body.from : '';
     const to = typeof req.body?.to === 'string' ? req.body.to : '';
     if (!from || !to) {
       res.status(400).json({ error: 'Both from and to dates are required' });
       return;
     }
-    copyDay(from, to, new Date().toISOString());
-    res.status(200).json(buildFoodDay(to));
+    if (userId) {
+      await copyDayForUser(from, to, new Date().toISOString(), userId);
+      res.status(200).json(await buildFoodDayForUser(to, userId));
+    } else {
+      copyDay(from, to, new Date().toISOString());
+      res.status(200).json(buildFoodDay(to));
+    }
   } catch (error) {
     console.error('Error copying day:', error);
     res.status(500).json({ error: 'Internal server error' });

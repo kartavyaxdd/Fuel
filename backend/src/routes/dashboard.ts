@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { buildDemoDashboard } from '../domain/dashboard';
+import { buildDemoDashboard, buildDashboardForUser } from '../domain/dashboard';
 
 const router = Router();
 
@@ -8,9 +8,11 @@ const router = Router();
  * Returns the canonical DashboardData assembled from the adaptive energy model,
  * goal projections, and the user's logged history.
  */
-router.get('/dashboard', (_req: Request, res: Response) => {
+router.get('/dashboard', async (req: Request, res: Response) => {
   try {
-    res.status(200).json(buildDemoDashboard());
+    const userId = req.headers['x-user-id'] as string | undefined;
+    const data = userId ? await buildDashboardForUser(userId) : buildDemoDashboard();
+    res.status(200).json(data);
   } catch (error) {
     console.error('Error building dashboard data:', error);
     res.status(500).json({ error: 'Internal server error' });

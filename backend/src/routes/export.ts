@@ -1,20 +1,21 @@
 import { Router, Request, Response } from 'express';
-import { getGoal } from '../domain/userGoal';
-import { buildWeightData } from '../domain/weight';
-import { buildFoodDay, getAllLogDates } from '../domain/foodLog';
+import { getGoal, getGoalForUser } from '../domain/userGoal';
+import { buildWeightData, buildWeightDataForUser } from '../domain/weight';
+import { buildFoodDay, buildFoodDayForUser, getAllLogDates, getAllLogDatesForUser } from '../domain/foodLog';
 import { DEMO_ANCHOR_DATE } from '../domain/sampleData';
 
 const router = Router();
 
-router.get('/export', (req: Request, res: Response) => {
+router.get('/export', async (req: Request, res: Response) => {
   try {
+    const userId = req.headers['x-user-id'] as string | undefined;
     const format = typeof req.query.format === 'string' ? req.query.format : 'json';
-    const goal = getGoal();
-    const weight = buildWeightData(180); // max WeightRange
-    const logDates = getAllLogDates();
+    const goal = userId ? await getGoalForUser(userId) : getGoal();
+    const weight = userId ? await buildWeightDataForUser(180, userId) : buildWeightData(180); // max WeightRange
+    const logDates = userId ? await getAllLogDatesForUser(userId) : getAllLogDates();
     // Always include demo anchor if no real dates logged
     const dates = logDates.length > 0 ? logDates : [DEMO_ANCHOR_DATE];
-    const foodDays = dates.map((d) => buildFoodDay(d));
+    const foodDays = userId ? await Promise.all(dates.map((d) => buildFoodDayForUser(d, userId))) : dates.map((d) => buildFoodDay(d));
 
     if (format === 'csv') {
       const rows: string[] = ['type,date,item,calories,protein,carbs,fat'];

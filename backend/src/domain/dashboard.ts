@@ -13,9 +13,10 @@ import {
 import { computeGoalProgress, recommendedCalorieTarget } from './goals';
 import { getGoal } from './userGoal';
 import { getDayMeals } from './foodLog';
-import { buildDailyRecords } from './dailyRecords';
+import { buildDailyRecords, buildDailyRecordsForUser } from './dailyRecords';
 import { DEMO_ANCHOR_DATE } from './sampleData';
 import { isTrainingDay } from './trainingDay';
+import { getGoalForUser } from './userGoal';
 
 /** Macro split (fraction of calories) targeted per gram type. */
 const PROTEIN_KCAL_PER_G = 4;
@@ -143,6 +144,12 @@ function computeWeeklyAdherence(
 
 function firstDefinedTrend(series: WeightPoint[]): number {
   return series.length > 0 ? series[0].trend : 0;
+}
+
+export async function buildDashboardForUser(userId: string): Promise<DashboardData> {
+  const goal = await getGoalForUser(userId);
+  const records = await buildDailyRecordsForUser(userId);
+  return buildDashboard(records, { mode: goal.mode, targetWeight: goal.targetWeight });
 }
 
 function round(n: number, dp: number): number {

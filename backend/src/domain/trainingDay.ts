@@ -1,4 +1,4 @@
-import { registerStore, scheduleSave } from './store';
+import { registerStore, scheduleSave, select, upsert } from './store';
 
 /** Extra kcal added to target on training days. */
 export const TRAINING_DAY_BONUS_KCAL = 250;
@@ -40,3 +40,18 @@ registerStore(
     }
   },
 );
+
+export async function isTrainingDayForUser(date: string, userId: string): Promise<boolean> {
+  const raw = await select('trainingDay', userId) as Record<string, boolean> | null;
+  const s = raw ?? {};
+  return s[date] === true;
+}
+
+export async function setTrainingDayForUser(date: string, value: boolean, userId: string): Promise<boolean> {
+  const raw = await select('trainingDay', userId) as Record<string, boolean> | null;
+  const s = raw ?? {};
+  s[date] = value;
+  if (!value) delete s[date];
+  await upsert('trainingDay', s, userId);
+  return value;
+}

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { GoalMode } from '@nutrition/types';
-import { buildInsights } from '../domain/insights';
+import { buildInsights, buildInsightsForUser } from '../domain/insights';
 import { buildDailyRecords } from '../domain/dailyRecords';
 
 const router = Router();
@@ -18,11 +18,11 @@ function normalizeTargetWeight(value: unknown): number {
   return Number.isFinite(n) && n > 0 && n <= 500 ? n : 78;
 }
 
-router.get('/insights', (req, res) => {
+router.get('/insights', async (req, res) => {
   try {
-    const mode = normalizeMode(req.query.mode);
-    const targetWeight = normalizeTargetWeight(req.query.targetWeight);
-    res.json(buildInsights(buildDailyRecords(), { mode, targetWeight }));
+    const userId = req.headers['x-user-id'] as string | undefined;
+    const data = userId ? await buildInsightsForUser(userId) : buildInsights(buildDailyRecords(), { mode: normalizeMode(req.query.mode), targetWeight: normalizeTargetWeight(req.query.targetWeight) });
+    res.json(data);
   } catch {
     res.status(500).json({ error: 'Internal server error' });
   }

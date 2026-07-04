@@ -9,11 +9,16 @@ const router = Router();
 
 router.post('/reset', async (req: Request, res: Response) => {
   try {
-    clearAllFoodLog();
-    clearAllWeights();
-    resetGoal();
-    clearAllMeasurements();
-    await resetStore();
+    const userId = req.headers['x-user-id'] as string | undefined;
+    if (userId) {
+      await resetStore(userId);
+    } else {
+      clearAllFoodLog();
+      clearAllWeights();
+      resetGoal();
+      clearAllMeasurements();
+      await resetStore();
+    }
     res.status(200).json({
       message: 'All data cleared — food log, weight history, and goal reset to defaults.',
     });

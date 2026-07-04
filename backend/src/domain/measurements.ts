@@ -1,5 +1,5 @@
 import type { Measurement } from '@nutrition/types';
-import { registerStore, scheduleSave } from './store';
+import { registerStore, scheduleSave, select, upsert } from './store';
 import { DEMO_ANCHOR_DATE } from './sampleData';
 
 let MEASUREMENTS: Measurement[] = [];
@@ -91,6 +91,47 @@ export function getLatestMeasurement(): Measurement | null {
 export function clearAllMeasurements(): void {
   MEASUREMENTS = [];
   scheduleSave();
+}
+
+export async function getMeasurementsForUser(userId: string): Promise<Measurement[]> {
+  const raw = await select('measurements', userId);
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((m): m is Measurement => m && typeof m === 'object' && typeof m.date === 'string');
+}
+
+export async function logMeasurementForUser(input: Partial<Measurement> & { waist?: number; neck?: number; height?: number; sex?: 'male' | 'female' }, userId: string): Promise<Measurement> {
+  const date = input.date ?? today();
+  const { waist = null, neck, height, sex, hips = null } = input;
+  let bodyFat = input.bodyFat ?? null;
+  if (bodyFat == null && waist != null && neck && height) {
+    bodyFat = estimateNavyBF({ waist, neck, height, sex, hips: hips ?? undefined });
+  }
+  const entry: Measurement = {
+    date,
+    waist: waist ?? null,
+    hips,
+    chest: input.chest ?? null,
+    armLeft: input.armLeft ?? null,
+    armRight: input.armRight ?? null,
+    thigh: input.thigh ?? null,
+    neck: neck ?? null,
+    height: height ?? null,
+    bodyFat,
+  };
+  const measurements = await getMeasurementsForUser(userId);
+  const idx = measurements.findIndex((m) => m.date === date);
+  if (idx >= 0) {
+    measurements[idx] = entry;
+  } else {
+    measurements.push(entry);
+    measurements.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  await upsert('measurements', measurements, userId);
+  return entry;
+}
+
+export async function clearAllMeasurementsForUser(userId: string): Promise<void> {
+  await upsert('measurements', [], userId);
 }
 
 /** Persist measurements. */

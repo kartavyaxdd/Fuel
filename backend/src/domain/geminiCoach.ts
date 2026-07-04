@@ -2,14 +2,14 @@ import { GoogleGenerativeAI, type GenerativeModel, type Part } from '@google/gen
 import type { MealSlot } from '@nutrition/types';
 import { searchFoodsLive } from './foodSearch';
 import { getFoodById } from './foodDb';
-import { logFood } from './foodLog';
-import { getGoal } from './userGoal';
+import { logFood, logFoodForUser } from './foodLog';
+import { getGoal, getGoalForUser } from './userGoal';
 import { buildCoach } from './coach';
 import { computeWeightTrend, computeAdaptiveExpenditure } from './energyModel';
-import { buildDailyRecords } from './dailyRecords';
+import { buildDailyRecords, buildDailyRecordsForUser } from './dailyRecords';
 import { DEMO_ANCHOR_DATE } from './sampleData';
 import { estimateEtaWeeks } from './goals';
-import { getLatestMeasurement } from './measurements';
+import { getLatestMeasurement, getMeasurementsForUser } from './measurements';
 import { isTrainingDay } from './trainingDay';
 
 const MODEL_NAME = 'gemini-2.5-flash';
@@ -214,8 +214,189 @@ function buildCoachContext(): CoachContext {
   };
 }
 
+async function buildCoachContextForUser(userId: string): Promise<CoachContext> {
+  const goal = await getGoalForUser(userId);
+  const history = await buildDailyRecordsForUser(userId);
+  const coachData = buildCoach(history, {
+    mode: goal.mode,
+    targetWeight: goal.targetWeight,
+  });
+
+  const trendPoints = computeWeightTrend(history);
+  const currentWeight =
+    trendPoints.length > 0 ? trendPoints[trendPoints.length - 1].trend : null;
+
+  let weeksToGoal: number | string = 'N/A';
+  if (currentWeight != null && currentWeight !== goal.targetWeight) {
+    const eta = estimateEtaWeeks(currentWeight, goal.targetWeight, trendPoints);
+    weeksToGoal = eta != null ? Math.round(eta) : 'stalled';
+  }
+
+  const weeklyWeightHistory = trendPoints
+    .filter((_, i) => i % 7 === 0)
+    .slice(-12)
+    .map((p) => `${p.date}: ${p.trend.toFixed(1)} kg`)
+    .join('\n');
+
+  const intakeHistory = history
+    .slice(-30)
+    .filter((r) => r.intake != null)
+    .map((r) => `${r.date}: ${Math.round(r.intake!)} kcal`)
+    .join('\n');
+
+  const { expenditureEstimate, confidence } = computeAdaptiveExpenditure(history);
+
+  const measurements = await getMeasurementsForUser(userId);
+  const latestM = measurements.length > 0 ? measurements[measurements.length - 1] : null;
+  const latestMeasurements = latestM
+    ? [
+        latestM.date,
+        latestM.waist != null ? `waist: ${latestM.waist} cm` : null,
+        latestM.chest != null ? `chest: ${latestM.chest} cm` : null,
+        latestM.armLeft != null ? `arm: ${latestM.armLeft} cm` : null,
+        latestM.hips != null ? `hips: ${latestM.hips} cm` : null,
+        latestM.bodyFat != null ? `BF%: ${latestM.bodyFat}%` : null,
+      ].filter(Boolean).join(' | ')
+    : 'No measurements logged yet.';
+
+  return {
+    mode: goal.mode,
+    targetWeight: goal.targetWeight,
+    targetBodyFat: goal.targetBodyFat,
+    startWeight: goal.startWeight,
+    startDate: goal.startDate,
+    currentWeight,
+    currentBodyFat: latestM?.bodyFat ?? null,
+    weeksToGoal,
+    avgIntake: coachData.checkIn.avgIntake,
+    avgExpenditure: coachData.checkIn.avgExpenditure ?? expenditureEstimate,
+    adherence: coachData.checkIn.adherence,
+    energyBalance: coachData.checkIn.energyBalance,
+    weightTrendDelta: coachData.checkIn.weightTrendDelta,
+    recommended: coachData.targets.recommended,
+    protein: coachData.targets.protein,
+    carbs: coachData.targets.carbs,
+    fat: coachData.targets.fat,
+    verdict: coachData.checkIn.verdict,
+    weeklyWeightHistory,
+    intakeHistory,
+    confidence,
+    latestMeasurements,
+  };
+}
+
 function buildSystemPrompt(): string {
   const ctx = buildCoachContext();
+
+  const daysOnPlan = (() => {
+    const start = new Date(ctx.startDate);
+    const anchor = new Date(DEMO_ANCHOR_DATE);
+    return Math.max(0, Math.round((anchor.getTime() - start.getTime()) / 86400000));
+  })();
+
+  const progressKg = ctx.currentWeight != null
+    ? (ctx.startWeight - ctx.currentWeight).toFixed(1)
+    : '?';
+
+  const adherencePct = Math.round(ctx.adherence * 100);
+  const isSlipping = ctx.adherence < 0.6;
+  const isOffTrack = ctx.weightTrendDelta > 0 && ctx.mode === 'fat-loss';
+  const isBrutal = isSlipping || isOffTrack;
+
+  const aestheticGoal = ctx.targetBodyFat != null;
+  const bfStatus = ctx.currentBodyFat != null
+    ? `${ctx.currentBodyFat}% → target ${ctx.targetBodyFat ?? '?'}%`
+    : ctx.targetBodyFat != null
+      ? `Target: ${ctx.targetBodyFat}% (log measurements to track)`
+      : null;
+
+  return `You are BRUTAL COACH — an elite, no-bullshit AI nutrition coach powered by the user's REAL calorie, weight, and body composition data. You are NOT a generic assistant. You hold the user accountable with precision.
+
+${aestheticGoal ? `⚡ AESTHETIC PHYSIQUE FOCUS — This user's primary goal is body composition, not just weight. They want to be lean, muscular, and defined — not just lighter. Track protein and body fat % as the primary metrics. Weight on the scale is secondary to how they look and what the measurements show.` : ''}
+
+═══════════════════════════════════════════
+USER'S GOAL & PROGRESS
+═══════════════════════════════════════════
+Goal mode:        ${ctx.mode}
+Goal weight:      ${ctx.targetWeight} kg${ctx.targetBodyFat != null ? `\nTarget body fat:  ${ctx.targetBodyFat}%` : ''}
+Start weight:     ${ctx.startWeight} kg on ${ctx.startDate} (${daysOnPlan} days ago)
+Current trend:    ${ctx.currentWeight?.toFixed(1) ?? '?'} kg${bfStatus ? `\nCurrent body fat: ${bfStatus}` : ''}
+Total progress:   ${progressKg} kg so far
+ETA to goal:      ${ctx.weeksToGoal} weeks
+
+═══════════════════════════════════════════
+LATEST BODY MEASUREMENTS
+═══════════════════════════════════════════
+${ctx.latestMeasurements}
+
+═══════════════════════════════════════════
+METABOLIC SNAPSHOT (derived from training data)
+═══════════════════════════════════════════
+Avg daily intake:        ${ctx.avgIntake != null ? Math.round(ctx.avgIntake) + ' kcal' : 'N/A'}
+Estimated expenditure:   ${ctx.avgExpenditure != null ? Math.round(ctx.avgExpenditure) + ' kcal' : 'N/A'}
+Energy balance:          ${ctx.energyBalance != null ? (ctx.energyBalance > 0 ? '+' : '') + Math.round(ctx.energyBalance) + ' kcal/day' : 'N/A'}
+7-day weight trend:      ${ctx.weightTrendDelta > 0 ? '+' : ''}${ctx.weightTrendDelta.toFixed(2)} kg
+Adherence (7d):          ${adherencePct}%
+Model confidence:        ${Math.round(ctx.confidence * 100)}%
+
+TODAY: ${isTrainingDay(DEMO_ANCHOR_DATE) ? '🏋️ TRAINING DAY — targets are elevated (+250 kcal, +20g protein, more carbs)' : '😴 REST DAY — standard targets'}
+
+RECOMMENDED TARGETS:
+  Calories: ${ctx.recommended} kcal/day
+  Protein:  ${ctx.protein}g  ← NON-NEGOTIABLE for muscle retention
+  Carbs:    ${ctx.carbs}g
+  Fat:      ${ctx.fat}g
+
+═══════════════════════════════════════════
+WEEKLY WEIGHT HISTORY (trend-smoothed)
+═══════════════════════════════════════════
+${ctx.weeklyWeightHistory}
+
+═══════════════════════════════════════════
+LAST 30 DAYS INTAKE LOG
+═══════════════════════════════════════════
+${ctx.intakeHistory}
+
+═══════════════════════════════════════════
+COACH'S READ ON THE USER RIGHT NOW
+═══════════════════════════════════════════
+${ctx.verdict}
+
+${isBrutal ? `⚠️ USER IS SLIPPING — BRUTAL MODE ON. Adherence: ${adherencePct}%. Do NOT coddle.` : `✅ User is on track. Be firm but encouraging.`}
+
+═══════════════════════════════════════════
+TONE RULES (NON-NEGOTIABLE)
+═══════════════════════════════════════════
+${isBrutal ? `
+BRUTAL — The user is failing. You are ALLOWED and EXPECTED to:
+- Swear (f*ck, sh*t, damn — not slurs)
+- Shame specific behaviors with SPECIFIC data ("You ate 2800 kcal three days this week. That's why you're not losing fat.")
+- Be blunt: "Stop making excuses. Hit your target today."
+- Refuse to sugarcoat
+` : `
+FIRM — User is on track. Be direct, precise, no fluff. Credit real progress but push for more.
+`}
+${aestheticGoal ? `
+AESTHETIC COACHING RULES:
+- PROTEIN IS THE PRIORITY. Never let them slip below their protein target. Losing muscle while cutting = failure.
+- When scale weight stalls but waist measurement drops, that's a WIN. Say so explicitly.
+- Remind them: 10-12% BF is achievable but requires consistency for months, not weeks.
+- If they're close to target BF%, protect the muscle — drop deficit, not protein.
+- Reference body fat % and measurements, not just weight.
+- Never say "lose weight" — say "drop body fat" or "get leaner".
+` : ''}
+- NEVER use emojis
+- NEVER say "Let's" or "We can" — address the user as "you"
+- Responses: 1-3 short paragraphs max. Be dense, not verbose.
+- When the user mentions food they ate, use the log_food tool to log it without asking.
+- Today's date for logging: ${demoToday()}
+
+AVAILABLE TOOL: log_food(name, slot, quantity, date?)
+Use it immediately when the user says they ate something. Infer the slot from context (morning=breakfast, noon=lunch, evening=dinner, otherwise=snack). Default date is ${demoToday()}.`;
+}
+
+async function buildSystemPromptForUser(userId: string): Promise<string> {
+  const ctx = await buildCoachContextForUser(userId);
 
   const daysOnPlan = (() => {
     const start = new Date(ctx.startDate);
@@ -338,6 +519,7 @@ export type ProgressEvent =
 async function handleLogFood(
   args: { name: string; slot: MealSlot; quantity: number; date?: string },
   onProgress?: (e: ProgressEvent) => void,
+  userId?: string,
 ): Promise<string> {
   try {
     onProgress?.({ type: 'searching', query: args.name });
@@ -365,7 +547,9 @@ async function handleLogFood(
 
     const date = args.date ?? demoToday();
     const loggedAt = new Date().toISOString();
-    const entry = logFood(date, args.slot, food.id, args.quantity, loggedAt);
+    const entry = userId
+      ? await logFoodForUser(date, args.slot, food.id, args.quantity, loggedAt, userId)
+      : logFood(date, args.slot, food.id, args.quantity, loggedAt);
 
     onProgress?.({ type: 'logged', name: entry.name, slot: entry.slot, calories: entry.calories, protein: entry.protein, carbs: entry.carbs, fat: entry.fat });
 
@@ -422,13 +606,14 @@ export async function chatWithCoach(
   message: string,
   sessionHistory: ChatMessage[] = [],
   onProgress?: (e: ProgressEvent) => void,
+  userId?: string,
 ): Promise<string> {
   initGemini();
   if (!model) throw new Error('Coach unavailable. Set GEMINI_API_KEY.');
 
   onProgress?.({ type: 'thinking' });
 
-  const systemPrompt = buildSystemPrompt();
+  const systemPrompt = userId ? await buildSystemPromptForUser(userId) : buildSystemPrompt();
 
   const historyParts: { role: 'user' | 'model'; parts: { text: string }[] }[] = [
     { role: 'user', parts: [{ text: systemPrompt + '\n\nAcknowledge with "Ready."' }] },
@@ -440,7 +625,7 @@ export async function chatWithCoach(
 
   const chat = model.startChat({ history: historyParts, tools: TOOL_CONFIG as any });
 
-  let result = await chat.sendMessage(message);
+  const result = await chat.sendMessage(message);
   let responseText = result.response.text();
 
   const calls = result.response.functionCalls() ?? [];
@@ -449,7 +634,7 @@ export async function chatWithCoach(
     for (const call of calls) {
       if (call.name === 'log_food') {
         const args = call.args as { name: string; slot: MealSlot; quantity: number; date?: string };
-        const toolResult = await handleLogFood(args, onProgress);
+        const toolResult = await handleLogFood(args, onProgress, userId);
         functionResponses.push({
           functionResponse: { name: call.name, response: { result: toolResult } },
         });

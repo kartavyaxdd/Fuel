@@ -1,5 +1,6 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
 import dashboardRoutes from './routes/dashboard';
@@ -13,6 +14,7 @@ import resetRoutes from './routes/reset';
 import exportRoutes from './routes/export';
 import measurementsRoutes from './routes/measurements';
 import trainingDayRoutes from './routes/trainingDay';
+import userRoutes from './routes/user';
 
 // Load environment variables
 dotenv.config();
@@ -25,12 +27,14 @@ if (process.env.NODE_ENV !== 'production') allowedOrigins.push('http://localhost
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (curl, Postman, ChatGPT actions)
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
 }));
+
+// Security headers
+app.use(helmet());
 
 // Body parsing middleware — 10MB limit for photo uploads (base64)
 app.use(express.json({ limit: '10mb' }));
@@ -48,6 +52,7 @@ app.use('/api', resetRoutes);
 app.use('/api', exportRoutes);
 app.use('/api', measurementsRoutes);
 app.use('/api', trainingDayRoutes);
+app.use('/api', userRoutes);
 
 // Root endpoint — shows API is alive
 app.get('/', (req: Request, res: Response) => {
@@ -66,6 +71,7 @@ app.get('/', (req: Request, res: Response) => {
       coach: '/api/coach',
       reset: '/api/reset',
       export: '/api/export?format=json|csv',
+      user: '/api/user',
     },
   });
 });

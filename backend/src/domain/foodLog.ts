@@ -9,7 +9,7 @@ import type {
 import { MEAL_SLOTS } from '@nutrition/types';
 import { getFoodById } from './foodDb';
 import { buildDemoDashboard } from './dashboard';
-import { registerStore, scheduleSave } from './store';
+import { registerStore, scheduleSave, select, upsert } from './store';
 
 const SLOT_LABELS: Record<MealSlot, string> = {
   breakfast: 'Breakfast',
@@ -274,3 +274,144 @@ registerStore(
     }
   },
 );
+
+function buildLoggedFoodEntry(date: string, slot: MealSlot, foodId: string, quantity: number, loggedAt: string): LoggedFood {
+  const food = getFoodById(foodId);
+  if (!food) throw new Error(`Unknown food: ${foodId}`);
+  const scaled = scaleMacros(food, quantity);
+  return {
+    id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    date, slot,
+    foodId: food.id, name: food.name, brand: food.brand,
+    quantity, servingUnit: food.servingUnit, loggedAt,
+    ...scaled,
+  };
+}
+
+function buildFoodDayFromData(log: Map<string, LoggedFood[]>, date: string): FoodDay {
+  const entries = log.get(date) ?? [];
+  const groups = groupBySlot(entries);
+  const consumed = entries.reduce((acc, e) => addMacros(acc, e), emptyMacros());
+  const target = targetMacros();
+  return {
+    date, target, consumed,
+    remaining: {
+      calories: target.calories - consumed.calories,
+      protein: round(target.protein - consumed.protein),
+      carbs: round(target.carbs - consumed.carbs),
+      fat: round(target.fat - consumed.fat),
+    },
+    groups,
+  };
+}
+
+export async function getFoodLogForUser(userId: string): Promise<Map<string, LoggedFood[]>> {
+  const raw = await select('foodLog', userId) as FoodLogSnapshot | null;
+  const map = new Map<string, LoggedFood[]>();
+  if (raw && typeof raw === 'object') {
+    for (const [date, entries] of Object.entries(raw.days ?? {})) {
+      if (Array.isArray(entries)) map.set(date, entries);
+    }
+  }
+  return map;
+}
+
+export async function logFoodForUser(date: string, slot: MealSlot, foodId: string, quantity: number, loggedAt: string, userId: string): Promise<LoggedFood> {
+  const entry = buildLoggedFoodEntry(date, slot, foodId, quantity, loggedAt);
+  const log = await getFoodLogForUser(userId);
+  const day = log.get(date) ?? [];
+  day.push(entry);
+  log.set(date, day);
+  const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
+  await upsert('foodLog', snapshot, userId);
+  return entry;
+}
+
+export async function clearDayForUser(date: string, userId: string): Promise<number> {
+  const log = await getFoodLogForUser(userId);
+  const day = log.get(date);
+  if (!day) return 0;
+  const count = day.length;
+  log.delete(date);
+  const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
+  await upsert('foodLog', snapshot, userId);
+  return count;
+}
+
+export async function deleteLoggedFoodForUser(date: string, entryId: string, userId: string): Promise<boolean> {
+  const log = await getFoodLogForUser(userId);
+  const day = log.get(date);
+  if (!day) return false;
+  const idx = day.findIndex((e) => e.id === entryId);
+  if (idx === -1) return false;
+  day.splice(idx, 1);
+  const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
+  await upsert('foodLog', snapshot, userId);
+  return true;
+}
+
+export async function getDayMealsForUser(date: string, userId: string): Promise<{ name: string; calories: number; protein: number; carbs: number; fat: number; time: string }[]> {
+  const log = await getFoodLogForUser(userId);
+  const entries = log.get(date) ?? [];
+  return entries.map(e => ({
+    name: e.name,
+    calories: e.calories,
+    protein: e.protein,
+    carbs: e.carbs,
+    fat: e.fat,
+    time: e.loggedAt.includes('T') ? e.loggedAt.split('T')[1].slice(0, 5) : e.loggedAt,
+  }));
+}
+
+export async function buildFoodDayForUser(date: string, userId: string): Promise<FoodDay> {
+  const log = await getFoodLogForUser(userId);
+  return buildFoodDayFromData(log, date);
+}
+
+export async function copyDayForUser(fromDate: string, toDate: string, loggedAt: string, userId: string): Promise<number> {
+  const log = await getFoodLogForUser(userId);
+  const source = log.get(fromDate) ?? [];
+  let copied = 0;
+  for (const e of source) {
+    await logFoodForUser(toDate, e.slot, e.foodId, e.quantity, loggedAt, userId);
+    copied++;
+  }
+  return copied;
+}
+
+export async function getRecentFoodsForUser(limit = 10, opts?: { slot?: string; maxDays?: number }, userId?: string): Promise<{ foodId: string; name: string; count: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }[]> {
+  const log = await getFoodLogForUser(userId ?? '');
+  const recentThreshold = opts?.maxDays ? Date.now() - opts.maxDays * 86400000 : 0;
+  const freq = new Map<string, { name: string; count: number; slotCount: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }>();
+  for (const [date, entries] of log) {
+    if (recentThreshold > 0) {
+      const d = new Date(`${date}T00:00:00Z`).getTime();
+      if (d < recentThreshold) continue;
+    }
+    for (const e of entries) {
+      const cur = freq.get(e.foodId);
+      const isNewer = !cur || date > cur.lastDate;
+      const baseCount = (cur?.count ?? 0) + 1;
+      const slotBonus = opts?.slot && e.slot === opts.slot ? 3 : 0;
+      freq.set(e.foodId, {
+        name: e.name,
+        count: baseCount + slotBonus,
+        slotCount: (cur?.slotCount ?? 0) + (opts?.slot && e.slot === opts.slot ? 1 : 0),
+        lastDate: isNewer ? date : (cur?.lastDate ?? date),
+        calories: isNewer ? e.calories : (cur?.calories ?? e.calories),
+        protein: isNewer ? e.protein : (cur?.protein ?? e.protein),
+        carbs: isNewer ? e.carbs : (cur?.carbs ?? e.carbs),
+        fat: isNewer ? e.fat : (cur?.fat ?? e.fat),
+      });
+    }
+  }
+  return [...freq.entries()]
+    .map(([foodId, v]) => ({ foodId, name: v.name, count: v.count, lastDate: v.lastDate, calories: v.calories, protein: v.protein, carbs: v.carbs, fat: v.fat }))
+    .sort((a, b) => b.count - a.count || b.lastDate.localeCompare(a.lastDate))
+    .slice(0, limit);
+}
+
+export async function getAllLogDatesForUser(userId: string): Promise<string[]> {
+  const log = await getFoodLogForUser(userId);
+  return [...log.keys()].sort();
+}
