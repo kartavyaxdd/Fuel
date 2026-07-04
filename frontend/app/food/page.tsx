@@ -671,8 +671,13 @@ function AddFoodSheet({
                         className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition hover:bg-white/[0.05]"
                       >
                         <div className="min-w-0">
-                          <div className="truncate font-medium text-white">
-                            {item.name}
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="truncate font-medium text-white">{item.name}</span>
+                            {sourceLabel(item.id) ? (
+                              <span className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide border border-white/10 ${sourceLabel(item.id)!.cls}`}>
+                                {sourceLabel(item.id)!.text}
+                              </span>
+                            ) : null}
                           </div>
                           <div className="truncate text-xs text-white/40">
                             {item.brand ? `${item.brand} · ` : ""}
@@ -719,6 +724,14 @@ function PreviewStat({ label, value }: { label: string; value: number | string }
       <div className="text-[10px] uppercase tracking-wider text-white/40">{label}</div>
     </div>
   );
+}
+
+function sourceLabel(id: string): { text: string; cls: string } | null {
+  if (id.startsWith("off-")) return { text: "OFF", cls: "text-white/30" };
+  if (id.startsWith("usda-")) return { text: "USDA", cls: "text-white/30" };
+  if (id.startsWith("sp-")) return { text: "Spoon", cls: "text-white/30" };
+  if (id.startsWith("in-")) return { text: "Indian", cls: "text-white/30" };
+  return null;
 }
 
 function formatQty(q: number): string {
