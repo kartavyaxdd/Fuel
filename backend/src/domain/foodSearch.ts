@@ -17,7 +17,7 @@ const OFF_URL = 'https://world.openfoodfacts.org/cgi/search.pl';
 const USDA_URL = 'https://api.nal.usda.gov/fdc/v1/foods/search';
 const SPOONACULAR_URL = 'https://api.spoonacular.com/recipes/complexSearch';
 const SEARCH_TTL_MS = 5 * 60 * 1000;
-const HTTP_TIMEOUT_MS = 6000;
+const HTTP_TIMEOUT_MS = 15000;
 
 /** Every remote item we've ever normalized, keyed by its minted id. */
 const REMOTE_ITEMS = new Map<string, FoodItem>();
@@ -134,9 +134,10 @@ async function searchOff(query: string, limit: number): Promise<FoodItem[]> {
     `&fields=code,product_name,generic_name,brands,nutriments`;
   const data = (await fetchJson(url)) as { products?: unknown[] } | null;
   if (!data?.products) return [];
-  return data.products
+  const results = data.products
     .map((p) => normalizeOff(p as Record<string, unknown>))
     .filter((x): x is FoodItem => x !== null);
+  return results;
 }
 
 async function searchUsda(query: string, limit: number): Promise<FoodItem[]> {
