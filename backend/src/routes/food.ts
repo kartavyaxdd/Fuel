@@ -38,6 +38,50 @@ router.get('/food/search', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/food/barcode?code=XXXXXXXX
+ * Lookup a food by barcode via OpenFoodFacts. Returns single best match or 404.
+ */
+router.get('/food/barcode', async (req: Request, res: Response) => {
+  try {
+    const code = typeof req.query.code === 'string' ? req.query.code.trim() : '';
+    if (!code) {
+      res.status(400).json({ error: 'code param required' });
+      return;
+    }
+    const url = `https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(code)}.json`;
+    const r = await fetch(url, { headers: { 'User-Agent': 'FuelApp/1.0' }, signal: AbortSignal.timeout(5000) });
+    if (!r.ok) {
+      res.status(502).json({ error: 'OpenFoodFacts unavailable' });
+      return;
+    }
+    const json = await r.json() as { status: number; product?: Record<string, unknown> };
+    if (json.status !== 1 || !json.product) {
+      res.status(404).json({ error: 'Barcode not found' });
+      return;
+    }
+    const p = json.product;
+    const n = p.nutriments as Record<string, number> ?? {};
+    const item = {
+      id: `off-${code}`,
+      name: (p.product_name as string) || 'Unknown product',
+      brand: (p.brands as string) || undefined,
+      calories: Math.round(n['energy-kcal_100g'] ?? n['energy-kcal'] ?? 0),
+      protein: Math.round((n['proteins_100g'] ?? 0) * 10) / 10,
+      carbs: Math.round((n['carbohydrates_100g'] ?? 0) * 10) / 10,
+      fat: Math.round((n['fat_100g'] ?? 0) * 10) / 10,
+      servingSize: 100,
+      servingUnit: 'g',
+      barcode: code,
+      source: 'openfoodfacts',
+    };
+    res.status(200).json({ item });
+  } catch (error) {
+    console.error('Barcode lookup error:', error);
+    res.status(500).json({ error: 'Barcode lookup failed' });
+  }
+});
+
+/**
  * GET /api/food/recent?limit=N
  * Returns top-N most frequently logged foods across all dates.
  */

@@ -422,6 +422,17 @@ function MealSection({
 /* Add-food sheet (search + quantity)                                  */
 /* ------------------------------------------------------------------ */
 
+interface RecentFood {
+  foodId: string;
+  name: string;
+  count: number;
+  lastDate: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
 function AddFoodSheet({
   slot,
   busy,
@@ -438,10 +449,14 @@ function AddFoodSheet({
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<FoodItem | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [recentFoods, setRecentFoods] = useState<RecentFood[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+    apiGet<{ items: RecentFood[] }>("/food/recent?limit=8")
+      .then((r) => setRecentFoods(r.items))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -596,9 +611,54 @@ function AddFoodSheet({
                   No matches for “{query.trim()}”.
                 </div>
               ) : !query.trim() ? (
-                <div className="py-12 text-center text-sm text-white/30">
-                  Start typing to search the food database.
-                </div>
+                recentFoods.length > 0 ? (
+                  <div>
+                    <p className="px-2 pb-2 text-xs uppercase tracking-wider text-white/30">
+                      Recent
+                    </p>
+                    <ul className="space-y-1">
+                      {recentFoods.map((item) => (
+                        <li key={item.foodId}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelected({
+                                id: item.foodId,
+                                name: item.name,
+                                brand: undefined,
+                                calories: item.calories,
+                                protein: item.protein,
+                                carbs: item.carbs,
+                                fat: item.fat,
+                                servingSize: 100,
+                                servingUnit: "g",
+                                source: "database" as const,
+                              });
+                              setQuantity(1);
+                            }}
+                            className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition hover:bg-white/[0.05]"
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate font-medium text-white">{item.name}</div>
+                              <div className="truncate text-xs text-white/40">
+                                {item.count}× logged · {item.protein}p · {item.carbs}c · {item.fat}f
+                              </div>
+                            </div>
+                            <span className="ml-3 shrink-0 text-sm font-semibold tabular-nums text-white/70">
+                              {item.calories}
+                              <span className="text-xs font-normal text-white/30"> kcal</span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-3 px-2 text-xs text-white/20">Or search above for more foods</p>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-sm text-white/30">
+                    Start typing to search the food database.
+                  </div>
+                )
               ) : (
                 <ul className="space-y-1">
                   {results.map((item) => (
