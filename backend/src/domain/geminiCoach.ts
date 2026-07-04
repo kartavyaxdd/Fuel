@@ -646,6 +646,15 @@ export async function chatWithCoach(
     }
   }
 
+  if (!responseText && calls.length > 0) {
+    const logged = calls.filter(c => c.name === 'log_food');
+    const details = logged.map(c => {
+      const a = c.args as { name?: string; slot?: string; quantity?: number };
+      return `${a.quantity ?? '?'}x ${a.name ?? '?'} (${a.slot ?? '?'})`;
+    });
+    responseText = `Logged ${logged.length} food item(s). ${details.join(', ')}`;
+  }
+
   onProgress?.({ type: 'reply', text: responseText });
   return responseText;
 }
