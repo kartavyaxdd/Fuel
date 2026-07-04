@@ -8,9 +8,9 @@ import { registerStore, scheduleSave, select, upsert } from './store';
  */
 const DEFAULT_GOAL: UserGoal = {
   mode: 'fat-loss',
-  targetWeight: 78,
-  startWeight: 84,
-  startDate: '2026-07-03',
+  targetWeight: 0,
+  startWeight: 0,
+  startDate: '',
 };
 
 let GOAL: UserGoal = { ...DEFAULT_GOAL };
