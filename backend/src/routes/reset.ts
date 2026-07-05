@@ -3,7 +3,7 @@ import { clearAllFoodLog } from '../domain/foodLog';
 import { clearAllWeights } from '../domain/weight';
 import { resetGoal } from '../domain/userGoal';
 import { clearAllMeasurements } from '../domain/measurements';
-import { resetStore } from '../domain/store';
+import { resetStore, deleteKey, select } from '../domain/store';
 
 const router = Router();
 
@@ -11,7 +11,12 @@ router.post('/reset', async (req: Request, res: Response) => {
   try {
     const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
     if (userId) {
+      const userData = await select('user', userId) as { username?: string | null } | null;
+      const username = userData?.username ?? undefined;
       await resetStore(userId);
+      if (username) {
+        await deleteKey('username_index', username);
+      }
     } else {
       clearAllFoodLog();
       clearAllWeights();

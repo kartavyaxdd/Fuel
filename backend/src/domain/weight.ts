@@ -8,6 +8,7 @@ import type {
 import { WEIGHT_RANGES } from '@nutrition/types';
 import { computeWeightTrend, type DailyRecord } from './energyModel';
 import { registerStore, scheduleSave, select, upsert } from './store';
+import { withUserLock } from './mutex';
 
 /**
  * In-memory weigh-in store keyed by ISO date. Starts empty — users log
@@ -111,10 +112,12 @@ export async function getWeightRecordsForUser(userId: string): Promise<DailyReco
 }
 
 export async function logWeightForUser(req: LogWeightRequest, userId: string): Promise<void> {
-  const raw = await select('weight', userId) as Record<string, number> | null;
-  const weights = raw ?? {};
-  weights[req.date] = req.weight;
-  await upsert('weight', weights, userId);
+  return withUserLock(userId, async () => {
+    const raw = await select('weight', userId) as Record<string, number> | null;
+    const weights = raw ?? {};
+    weights[req.date] = req.weight;
+    await upsert('weight', weights, userId);
+  });
 }
 
 export async function buildWeightDataForUser(range: WeightRange, userId: string): Promise<WeightData> {

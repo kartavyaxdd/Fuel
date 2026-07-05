@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
+import { supabaseEnabled } from '../db';
 import { upsert, select, onAfterLoadAll } from '../domain/store';
 
 const router = Router();
@@ -44,7 +45,7 @@ router.post('/user/register', async (req, res) => {
         res.status(400).json({ error: 'Username must be at least 2 characters' });
         return;
       }
-      const existing = await select('username_index', username) ?? inMemoryUsernameIndex.get(username);
+      const existing = await select('username_index', username) ?? (!supabaseEnabled ? inMemoryUsernameIndex.get(username) : undefined);
       if (existing) {
         res.status(409).json({ error: 'Username already taken. Choose another.' });
         return;
@@ -81,7 +82,7 @@ router.get('/user', async (req, res) => {
       res.status(401).json({ error: 'userId query parameter is required' });
       return;
     }
-    const data = await select('user', userId) ?? inMemoryUsers.get(userId) ?? null;
+    const data = await select('user', userId) ?? (!supabaseEnabled ? inMemoryUsers.get(userId) : null);
     if (!data) {
       res.status(404).json({ error: 'User not found. Register first via POST /api/user/register.' });
       return;
@@ -105,7 +106,7 @@ router.get('/user/lookup', async (req, res) => {
       res.status(400).json({ error: 'username query parameter is required (min 2 chars)' });
       return;
     }
-    const data = await select('username_index', username) ?? inMemoryUsernameIndex.get(username);
+    const data = await select('username_index', username) ?? (!supabaseEnabled ? inMemoryUsernameIndex.get(username) : null);
     if (!data) {
       res.status(404).json({ error: 'Username not found. Register first via POST /api/user/register.' });
       return;

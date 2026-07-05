@@ -1,5 +1,6 @@
 import type { GoalMode, SetGoalRequest, UserGoal } from '@nutrition/types';
 import { registerStore, scheduleSave, select, upsert } from './store';
+import { withUserLock } from './mutex';
 
 /**
  * The single active user goal. Defaults mirror the previous hardcoded
@@ -90,33 +91,35 @@ export async function getGoalForUser(userId: string): Promise<UserGoal> {
 }
 
 export async function setGoalForUser(req: SetGoalRequest, userId: string): Promise<UserGoal> {
-  if (!isValidMode(req.mode)) {
-    throw new Error(`Invalid goal mode: ${String(req.mode)}`);
-  }
-  const targetWeight = Number(req.targetWeight);
-  if (!Number.isFinite(targetWeight) || targetWeight <= 0) {
-    throw new Error(`Invalid target weight: ${String(req.targetWeight)}`);
-  }
-  const current = await getGoalForUser(userId);
-  const startWeight =
-    req.startWeight != null && Number.isFinite(Number(req.startWeight))
-      ? Number(req.startWeight)
-      : current.startWeight;
-  const startDate =
-    typeof req.startDate === 'string' && req.startDate.length > 0
-      ? req.startDate
-      : current.startDate;
-  const goal: UserGoal = {
-    mode: req.mode,
-    targetWeight,
-    startWeight,
-    startDate,
-    ...(req.targetBodyFat != null ? { targetBodyFat: Number(req.targetBodyFat) } : {}),
-    ...(req.height != null ? { height: Number(req.height) } : {}),
-    ...(req.sex != null ? { sex: req.sex } : {}),
-  };
-  await upsert('goal', goal, userId);
-  return goal;
+  return withUserLock(userId, async () => {
+    if (!isValidMode(req.mode)) {
+      throw new Error(`Invalid goal mode: ${String(req.mode)}`);
+    }
+    const targetWeight = Number(req.targetWeight);
+    if (!Number.isFinite(targetWeight) || targetWeight <= 0) {
+      throw new Error(`Invalid target weight: ${String(req.targetWeight)}`);
+    }
+    const current = await getGoalForUser(userId);
+    const startWeight =
+      req.startWeight != null && Number.isFinite(Number(req.startWeight))
+        ? Number(req.startWeight)
+        : current.startWeight;
+    const startDate =
+      typeof req.startDate === 'string' && req.startDate.length > 0
+        ? req.startDate
+        : current.startDate;
+    const goal: UserGoal = {
+      mode: req.mode,
+      targetWeight,
+      startWeight,
+      startDate,
+      ...(req.targetBodyFat != null ? { targetBodyFat: Number(req.targetBodyFat) } : {}),
+      ...(req.height != null ? { height: Number(req.height) } : {}),
+      ...(req.sex != null ? { sex: req.sex } : {}),
+    };
+    await upsert('goal', goal, userId);
+    return goal;
+  });
 }
 
 export async function resetGoalForUser(userId: string): Promise<UserGoal> {

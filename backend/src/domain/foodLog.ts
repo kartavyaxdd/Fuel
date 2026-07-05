@@ -7,10 +7,12 @@ import type {
   MealSlot,
 } from '@nutrition/types';
 import { MEAL_SLOTS } from '@nutrition/types';
+import crypto from 'crypto';
 import { getFoodById } from './foodDb';
 import { buildDemoDashboard } from './dashboard';
 import { getGoal, getGoalForUser } from './userGoal';
 import { registerStore, scheduleSave, select, upsert } from './store';
+import { withUserLock } from './mutex';
 import { recommendedCalorieTarget } from './goals';
 import { computeAdaptiveExpenditure } from './energyModel';
 import { buildDailyRecords, buildDailyRecordsForUser } from './dailyRecords';
@@ -299,7 +301,7 @@ function buildLoggedFoodEntry(date: string, slot: MealSlot, foodId: string, quan
   if (!food) throw new Error(`Unknown food: ${foodId}`);
   const scaled = scaleMacros(food, quantity);
   return {
-    id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    id: `log-${crypto.randomUUID()}`,
     date, slot,
     foodId: food.id, name: food.name, brand: food.brand,
     quantity, servingUnit: food.servingUnit, loggedAt,
@@ -336,37 +338,43 @@ export async function getFoodLogForUser(userId: string): Promise<Map<string, Log
 }
 
 export async function logFoodForUser(date: string, slot: MealSlot, foodId: string, quantity: number, loggedAt: string, userId: string): Promise<LoggedFood> {
-  const entry = buildLoggedFoodEntry(date, slot, foodId, quantity, loggedAt);
-  const log = await getFoodLogForUser(userId);
-  const day = log.get(date) ?? [];
-  day.push(entry);
-  log.set(date, day);
-  const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
-  await upsert('foodLog', snapshot, userId);
-  return entry;
+  return withUserLock(userId, async () => {
+    const entry = buildLoggedFoodEntry(date, slot, foodId, quantity, loggedAt);
+    const log = await getFoodLogForUser(userId);
+    const day = log.get(date) ?? [];
+    day.push(entry);
+    log.set(date, day);
+    const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
+    await upsert('foodLog', snapshot, userId);
+    return entry;
+  });
 }
 
 export async function clearDayForUser(date: string, userId: string): Promise<number> {
-  const log = await getFoodLogForUser(userId);
-  const day = log.get(date);
-  if (!day) return 0;
-  const count = day.length;
-  log.delete(date);
-  const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
-  await upsert('foodLog', snapshot, userId);
-  return count;
+  return withUserLock(userId, async () => {
+    const log = await getFoodLogForUser(userId);
+    const day = log.get(date);
+    if (!day) return 0;
+    const count = day.length;
+    log.delete(date);
+    const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
+    await upsert('foodLog', snapshot, userId);
+    return count;
+  });
 }
 
 export async function deleteLoggedFoodForUser(date: string, entryId: string, userId: string): Promise<boolean> {
-  const log = await getFoodLogForUser(userId);
-  const day = log.get(date);
-  if (!day) return false;
-  const idx = day.findIndex((e) => e.id === entryId);
-  if (idx === -1) return false;
-  day.splice(idx, 1);
-  const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
-  await upsert('foodLog', snapshot, userId);
-  return true;
+  return withUserLock(userId, async () => {
+    const log = await getFoodLogForUser(userId);
+    const day = log.get(date);
+    if (!day) return false;
+    const idx = day.findIndex((e) => e.id === entryId);
+    if (idx === -1) return false;
+    day.splice(idx, 1);
+    const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
+    await upsert('foodLog', snapshot, userId);
+    return true;
+  });
 }
 
 export async function getDayMealsForUser(date: string, userId: string): Promise<{ name: string; calories: number; protein: number; carbs: number; fat: number; time: string }[]> {
@@ -389,20 +397,22 @@ export async function buildFoodDayForUser(date: string, userId: string): Promise
 }
 
 export async function copyDayForUser(fromDate: string, toDate: string, loggedAt: string, userId: string): Promise<number> {
-  const log = await getFoodLogForUser(userId);
-  const source = log.get(fromDate) ?? [];
-  if (source.length === 0) return 0;
-  const existing = log.get(toDate) ?? [];
-  const entries = source.map((e) => ({
-    ...e,
-    date: toDate,
-    id: `${toDate}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${e.slot}`,
-    loggedAt,
-  }));
-  log.set(toDate, [...existing, ...entries]);
-  const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
-  await upsert('foodLog', snapshot, userId);
-  return source.length;
+  return withUserLock(userId, async () => {
+    const log = await getFoodLogForUser(userId);
+    const source = log.get(fromDate) ?? [];
+    if (source.length === 0) return 0;
+    const existing = log.get(toDate) ?? [];
+    const entries = source.map((e) => ({
+      ...e,
+      date: toDate,
+      id: `${toDate}-${crypto.randomUUID()}`,
+      loggedAt,
+    }));
+    log.set(toDate, [...existing, ...entries]);
+    const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
+    await upsert('foodLog', snapshot, userId);
+    return source.length;
+  });
 }
 
 export async function getRecentFoodsForUser(limit = 10, opts?: { slot?: string; maxDays?: number }, userId?: string): Promise<{ foodId: string; name: string; count: number; lastDate: string; calories: number; protein: number; carbs: number; fat: number }[]> {

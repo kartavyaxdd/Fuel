@@ -23,6 +23,12 @@ interface Provider {
 
 const providers = new Map<string, Provider>();
 
+/**
+ * In-memory key-value store used when Supabase is disabled (test/dev/no-Supabase mode).
+ * Keys are fully qualified (`userId:key` or bare `key` for global).
+ */
+const memStore = new Map<string, unknown>();
+
 /** Safely parse a JSON string, returning null for invalid input. */
 function safeJsonParse(s: string): unknown {
   try { return JSON.parse(s); } catch { return s; }
@@ -56,6 +62,7 @@ export function scopedKey(key: string, userId?: string): string {
 export async function select(key: string, userId?: string): Promise<unknown> {
   const actualKey = scopedKey(key, userId);
   if (!ENABLED || !supabase) {
+    if (userId) return memStore.get(actualKey) ?? null;
     const p = providers.get(key);
     return p ? p.export() : null;
   }
@@ -74,7 +81,10 @@ export async function select(key: string, userId?: string): Promise<unknown> {
 /** Write user-scoped data directly to Supabase. */
 export async function upsert(key: string, value: unknown, userId?: string): Promise<void> {
   const actualKey = scopedKey(key, userId);
-  if (!ENABLED || !supabase) return;
+  if (!ENABLED || !supabase) {
+    memStore.set(actualKey, value);
+    return;
+  }
   const payload = JSON.stringify(value);
   const { error } = await supabase
     .from('store')
@@ -84,8 +94,11 @@ export async function upsert(key: string, value: unknown, userId?: string): Prom
 
 /** Delete a single user-scoped key from Supabase. */
 export async function deleteKey(key: string, userId?: string): Promise<void> {
-  if (!ENABLED || !supabase) return;
   const actualKey = scopedKey(key, userId);
+  if (!ENABLED || !supabase) {
+    memStore.delete(actualKey);
+    return;
+  }
   const { error } = await supabase.from('store').delete().eq('key', actualKey);
   if (error) console.error(`[store] delete failed for "${actualKey}":`, error.message);
 }
@@ -148,7 +161,17 @@ export function scheduleSave(): void {
 
 /** Delete all rows, or a single user's rows when userId is given. */
 export async function resetStore(userId?: string): Promise<void> {
-  if (!ENABLED || !supabase) return;
+  if (!ENABLED || !supabase) {
+    if (userId) {
+      const prefix = `${userId}:`;
+      for (const k of memStore.keys()) {
+        if (k.startsWith(prefix)) memStore.delete(k);
+      }
+    } else {
+      memStore.clear();
+    }
+    return;
+  }
   if (userId) {
     const prefix = `${userId}:`;
     const { error } = await supabase

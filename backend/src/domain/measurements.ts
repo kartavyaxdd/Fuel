@@ -1,5 +1,6 @@
 import type { Measurement } from '@nutrition/types';
 import { registerStore, scheduleSave, select, upsert } from './store';
+import { withUserLock } from './mutex';
 import { DEMO_ANCHOR_DATE } from './sampleData';
 
 let MEASUREMENTS: Measurement[] = [];
@@ -100,34 +101,37 @@ export async function getMeasurementsForUser(userId: string): Promise<Measuremen
 }
 
 export async function logMeasurementForUser(input: Partial<Measurement> & { waist?: number; neck?: number; height?: number; sex?: 'male' | 'female' }, userId: string): Promise<Measurement> {
-  const date = input.date ?? today();
-  const { waist = null, neck, height, sex, hips = null } = input;
-  let bodyFat = input.bodyFat ?? null;
-  if (bodyFat == null && waist != null && neck && height) {
-    bodyFat = estimateNavyBF({ waist, neck, height, sex, hips: hips ?? undefined });
-  }
-  const entry: Measurement = {
-    date,
-    waist: waist ?? null,
-    hips,
-    chest: input.chest ?? null,
-    armLeft: input.armLeft ?? null,
-    armRight: input.armRight ?? null,
-    thigh: input.thigh ?? null,
-    neck: neck ?? null,
-    height: height ?? null,
-    bodyFat,
-  };
-  const measurements = await getMeasurementsForUser(userId);
-  const idx = measurements.findIndex((m) => m.date === date);
-  if (idx >= 0) {
-    measurements[idx] = entry;
-  } else {
-    measurements.push(entry);
-    measurements.sort((a, b) => a.date.localeCompare(b.date));
-  }
-  await upsert('measurements', measurements, userId);
-  return entry;
+  const realToday = new Date().toISOString().slice(0, 10);
+  return withUserLock(userId, async () => {
+    const date = input.date ?? realToday;
+    const { waist = null, neck, height, sex, hips = null } = input;
+    let bodyFat = input.bodyFat ?? null;
+    if (bodyFat == null && waist != null && neck && height) {
+      bodyFat = estimateNavyBF({ waist, neck, height, sex, hips: hips ?? undefined });
+    }
+    const entry: Measurement = {
+      date,
+      waist: waist ?? null,
+      hips,
+      chest: input.chest ?? null,
+      armLeft: input.armLeft ?? null,
+      armRight: input.armRight ?? null,
+      thigh: input.thigh ?? null,
+      neck: neck ?? null,
+      height: height ?? null,
+      bodyFat,
+    };
+    const measurements = await getMeasurementsForUser(userId);
+    const idx = measurements.findIndex((m) => m.date === date);
+    if (idx >= 0) {
+      measurements[idx] = entry;
+    } else {
+      measurements.push(entry);
+      measurements.sort((a, b) => a.date.localeCompare(b.date));
+    }
+    await upsert('measurements', measurements, userId);
+    return entry;
+  });
 }
 
 export async function clearAllMeasurementsForUser(userId: string): Promise<void> {
