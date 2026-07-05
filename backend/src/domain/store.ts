@@ -23,6 +23,14 @@ interface Provider {
 
 const providers = new Map<string, Provider>();
 
+type AfterLoadAll = (loaded: Map<string, unknown>) => void;
+const afterLoadAllCallbacks: AfterLoadAll[] = [];
+
+/** Register a callback invoked after loadAll() rehydrates all providers. */
+export function onAfterLoadAll(fn: AfterLoadAll): void {
+  afterLoadAllCallbacks.push(fn);
+}
+
 let lastWrite: Promise<void> = Promise.resolve();
 
 /** Register a domain store's snapshot provider. Called at module load. */
@@ -43,7 +51,6 @@ export function scopedKey(key: string, userId?: string): string {
 export async function select(key: string, userId?: string): Promise<unknown> {
   const actualKey = scopedKey(key, userId);
   if (!ENABLED || !supabase) {
-    // Fallback to provider in-memory state for default user
     const p = providers.get(key);
     return p ? p.export() : null;
   }
@@ -62,9 +69,10 @@ export async function select(key: string, userId?: string): Promise<unknown> {
 export async function upsert(key: string, value: unknown, userId?: string): Promise<void> {
   const actualKey = scopedKey(key, userId);
   if (!ENABLED || !supabase) return;
+  const payload = JSON.stringify(value);
   const { error } = await supabase
     .from('store')
-    .upsert({ key: actualKey, value: JSON.stringify(value) }, { onConflict: 'key', ignoreDuplicates: false });
+    .upsert({ key: actualKey, value: payload }, { onConflict: 'key', ignoreDuplicates: false });
   if (error) console.error(`[store] upsert failed for "${actualKey}":`, error.message);
 }
 
@@ -92,6 +100,9 @@ export async function loadAll(): Promise<void> {
     } catch (err) {
       console.error(`[store] failed to import "${provider.name}":`, err);
     }
+  }
+  for (const cb of afterLoadAllCallbacks) {
+    try { cb(loaded); } catch (err) { console.error('[store] afterLoadAll callback failed:', err); }
   }
 }
 

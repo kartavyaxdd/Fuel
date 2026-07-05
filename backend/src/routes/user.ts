@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import { upsert, select } from '../domain/store';
+import { upsert, select, onAfterLoadAll } from '../domain/store';
 
 const router = Router();
 
@@ -11,6 +11,22 @@ function generateUUID(): string {
 /** In-memory fallbacks for when Supabase is unavailable (test/dev). */
 const inMemoryUsers = new Map<string, { id: string; createdAt: string; username: string | null }>();
 const inMemoryUsernameIndex = new Map<string, { userId: string; createdAt: string }>();
+
+/* Rehydrate in-memory maps after server restart. */
+onAfterLoadAll((loaded) => {
+  for (const [key, value] of loaded) {
+    const usernameMatch = key.match(/^(.+):username_index$/);
+    if (usernameMatch && value && typeof value === 'object') {
+      const data = value as { userId: string; createdAt: string };
+      if (data.userId) inMemoryUsernameIndex.set(usernameMatch[1], { userId: data.userId, createdAt: data.createdAt });
+    }
+    const userMatch = key.match(/^(.+):user$/);
+    if (userMatch && value && typeof value === 'object') {
+      const data = value as { id: string; createdAt: string; username: string | null };
+      if (data.id) inMemoryUsers.set(data.id, { id: data.id, createdAt: data.createdAt, username: data.username ?? null });
+    }
+  }
+});
 
 /**
  * POST /api/user/register
