@@ -1848,11 +1848,11 @@
                     "userId": {
                       "type": "string",
                       "format": "uuid",
-                      "description": "Unique user identifier. Send as ?userId=xxx on all requests."
+                      "description": "INTERNAL USER ID (UUID). Use this as ?userId=xxx on ALL requests. Do NOT use the username field as the userId."
                     },
                     "username": {
                       "type": "string",
-                      "description": "The username, if one was provided."
+                      "description": "Friendly name the user chose. Used only for lookup. Do NOT pass this as userId — use the userId field instead."
                     },
                     "createdAt": {
                       "type": "string",
@@ -1964,11 +1964,11 @@
                     "userId": {
                       "type": "string",
                       "format": "uuid",
-                      "description": "The user's internal ID. Use this as ?userId=xxx on all requests."
+                      "description": "INTERNAL USER ID (UUID). Use this as ?userId=xxx on ALL requests. Do NOT use the username field as the userId."
                     },
                     "username": {
                       "type": "string",
-                      "description": "The username."
+                      "description": "Friendly name the user chose. Used only for lookup. Do NOT pass this as userId — use the userId field instead."
                     },
                     "createdAt": {
                       "type": "string",

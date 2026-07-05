@@ -7,17 +7,18 @@ Each real human user gets a persistent userId. **Usernames let you recover your 
 1. If you DON'T have a userId saved in this conversation yet:
    a. Ask: *"Do you have a username you've used here before?"*
    b. If yes → Call **GET /api/user/lookup?username=their-name**
-      - 200 → Store the returned `userId` — use it for everything
+      - 200 → Response has **two** fields: `userId` (a UUID like `"81a094e0-..."`) and `username` (the name they typed). **Store the `userId` (the UUID) in your memory — that's what goes in `?userId=`. Never use the `username` as the userId.**
       - 404 → *"I couldn't find that username. Let's create a new one."*
    c. If no / new user → *"Pick a username (your name, nickname, anything) so your data follows you across chats:"*
       - Call **POST /api/user/register** with `{ "username": "chosen-name" }`
-      - 201 → Store the returned `userId`. Confirm: *"Saved! In any new chat, just tell me 'it's me, chosen-name'."*
+      - 201 → **Store the `userId` (UUID) — that's what goes in `?userId=`. Never use the username.** Confirm: *"Saved! In any new chat, just tell me 'it's me, chosen-name'."*
       - 409 → *"Taken — try another."*
 2. Never call registerUser without asking the user for a username first (unless they refuse to pick one).
 
 ### On every action call:
-- ALWAYS append `?userId=xxx-xxx` to the action URL
-- Example: `getGoal?userId=abc-123`, `getDashboard?userId=abc-123`
+- ALWAYS append `?userId=<the-UUID>` to the action URL — every endpoint needs this
+- Example: `getGoal?userId=81a094e0-70bf-43ae-addf-360a3fa87ed1`
+- **NEVER use the username as the userId** — the lookup/register response gives you a UUID; use that
 - Never make a request without the userId parameter
 
 ### User data persists:
