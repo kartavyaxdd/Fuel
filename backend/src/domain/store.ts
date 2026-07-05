@@ -23,6 +23,11 @@ interface Provider {
 
 const providers = new Map<string, Provider>();
 
+/** Safely parse a JSON string, returning null for invalid input. */
+function safeJsonParse(s: string): unknown {
+  try { return JSON.parse(s); } catch { return s; }
+}
+
 type AfterLoadAll = (loaded: Map<string, unknown>) => void;
 const afterLoadAllCallbacks: AfterLoadAll[] = [];
 
@@ -62,7 +67,8 @@ export async function select(key: string, userId?: string): Promise<unknown> {
   if (error && error.code !== 'PGRST116') {
     console.error(`[store] select failed for "${actualKey}":`, error.message);
   }
-  return data?.value ?? null;
+  const raw = data?.value ?? null;
+  return typeof raw === 'string' ? safeJsonParse(raw) : raw;
 }
 
 /** Write user-scoped data directly to Supabase. */
@@ -92,7 +98,10 @@ export async function loadAll(): Promise<void> {
     console.error('[store] loadAll query failed:', error.message);
     return;
   }
-  const loaded = new Map((data ?? []).map((r: { key: string; value: unknown }) => [r.key, r.value]));
+  const loaded = new Map((data ?? []).map((r: { key: string; value: unknown }) => [
+    r.key,
+    typeof r.value === 'string' ? safeJsonParse(r.value) : r.value,
+  ]));
   for (const provider of providers.values()) {
     const value = loaded.get(provider.name);
     try {
