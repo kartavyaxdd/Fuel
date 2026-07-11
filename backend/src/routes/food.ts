@@ -14,6 +14,7 @@ import {
   deleteLoggedFoodForUser,
   logFood,
   logFoodForUser,
+  logCustomFoodForUser,
   getRecentFoods,
   getRecentFoodsForUser,
 } from '../domain/foodLog';
@@ -210,6 +211,48 @@ router.post('/food/log', async (req: Request, res: Response) => {
     console.error('Error logging food:', error);
     const message = error instanceof Error ? error.message : 'Internal server error';
     res.status(message.startsWith('Unknown food') ? 400 : 500).json({ error: message });
+  }
+});
+
+/**
+ * POST /api/food/custom-log
+ * Log a food with explicit macros (no foodId lookup needed).
+ * Body: { date, slot, name, calories, protein, carbs, fat, quantity, loggedAt }
+ */
+router.post('/food/custom-log', async (req: Request, res: Response) => {
+  try {
+    const userId = typeof req.query.userId === 'string' ? req.query.userId : undefined;
+    if (!userId) {
+      res.status(400).json({ error: 'userId query parameter is required' });
+      return;
+    }
+    const body = req.body as Partial<{
+      date: string; slot: string; name: string;
+      calories: number; protein: number; carbs: number; fat: number;
+      quantity: number; loggedAt: string;
+    }>;
+    if (
+      typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date) ||
+      !isMealSlot(body.slot) ||
+      typeof body.name !== 'string' || body.name.length === 0 ||
+      typeof body.calories !== 'number' || body.calories < 0 ||
+      typeof body.protein !== 'number' || body.protein < 0 ||
+      typeof body.carbs !== 'number' || body.carbs < 0 ||
+      typeof body.fat !== 'number' || body.fat < 0 ||
+      typeof body.quantity !== 'number' || body.quantity <= 0
+    ) {
+      res.status(400).json({ error: 'Invalid custom food log request.' });
+      return;
+    }
+    const loggedAt = body.loggedAt ?? new Date().toISOString();
+    await logCustomFoodForUser(
+      body.date, body.slot, body.name, body.calories, body.protein, body.carbs, body.fat,
+      body.quantity, loggedAt, userId,
+    );
+    res.status(201).json(await buildFoodDayForUser(body.date, userId));
+  } catch (error) {
+    console.error('Error logging custom food:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

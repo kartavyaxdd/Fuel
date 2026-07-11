@@ -350,6 +350,30 @@ export async function logFoodForUser(date: string, slot: MealSlot, foodId: strin
   });
 }
 
+export async function logCustomFoodForUser(
+  date: string, slot: MealSlot, name: string, calories: number,
+  protein: number, carbs: number, fat: number, quantity: number, loggedAt: string, userId: string,
+): Promise<LoggedFood> {
+  return withUserLock(userId, async () => {
+    const entry: LoggedFood = {
+      id: `log-${crypto.randomUUID()}`,
+      date, slot, foodId: 'custom', name,
+      quantity, servingUnit: 'serving', loggedAt,
+      calories: Math.round(calories * quantity),
+      protein: Math.round(protein * quantity * 10) / 10,
+      carbs: Math.round(carbs * quantity * 10) / 10,
+      fat: Math.round(fat * quantity * 10) / 10,
+    };
+    const log = await getFoodLogForUser(userId);
+    const day = log.get(date) ?? [];
+    day.push(entry);
+    log.set(date, day);
+    const snapshot: FoodLogSnapshot = { idCounter: 0, days: Object.fromEntries(log.entries()) };
+    await upsert('foodLog', snapshot, userId);
+    return entry;
+  });
+}
+
 export async function clearDayForUser(date: string, userId: string): Promise<number> {
   return withUserLock(userId, async () => {
     const log = await getFoodLogForUser(userId);

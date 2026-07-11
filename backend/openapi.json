@@ -502,6 +502,50 @@
         ]
       }
     },
+    "/food/custom-log": {
+      "post": {
+        "tags": ["Food"],
+        "summary": "Log a custom food by macros",
+        "description": "Log a food by providing name and macros directly. Use when searchFoods has no match — get values from web search. Returns the updated FoodDay.",
+        "operationId": "logCustomFood",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["date", "slot", "name", "calories", "protein", "carbs", "fat", "quantity"],
+                "properties": {
+                  "date": { "type": "string", "description": "Date in YYYY-MM-DD format" },
+                  "slot": { "type": "string", "enum": ["breakfast", "lunch", "dinner", "snack"] },
+                  "name": { "type": "string", "description": "Food name" },
+                  "calories": { "type": "number", "description": "Calories per serving" },
+                  "protein": { "type": "number", "description": "Protein in grams per serving" },
+                  "carbs": { "type": "number", "description": "Carbs in grams per serving" },
+                  "fat": { "type": "number", "description": "Fat in grams per serving" },
+                  "quantity": { "type": "number", "description": "Number of servings", "minimum": 0.1 },
+                  "loggedAt": { "type": "string", "description": "Time in HH:MM format (optional)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Food logged — returns updated day", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FoodDay" } } } },
+          "400": { "description": "Invalid body" },
+          "500": { "description": "Internal server error" }
+        },
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "User identifier from POST /api/user/register."
+          }
+        ]
+      }
+    },
     "/food/log/{id}": {
       "delete": {
         "tags": [
