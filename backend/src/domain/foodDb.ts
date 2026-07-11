@@ -34,6 +34,8 @@ export const FOOD_DB: FoodItem[] = [
   { id: 'db-tuna', name: 'Tuna, canned in water', source: 'database', servingSize: 100, servingUnit: 'g', calories: 116, protein: 26, carbs: 0, fat: 1 },
   { id: 'db-cottage-cheese', name: 'Cottage cheese, low-fat', source: 'database', servingSize: 100, servingUnit: 'g', calories: 72, protein: 12, carbs: 3, fat: 1 },
   { id: 'db-dark-chocolate', name: 'Dark chocolate, 85%', source: 'database', servingSize: 28, servingUnit: 'g', calories: 170, protein: 3, carbs: 13, fat: 12 },
+  { id: 'db-aloo-paratha', name: 'Aloo pyaaz paratha', source: 'database', servingSize: 1, servingUnit: 'paratha', calories: 180, protein: 4, carbs: 28, fat: 6 },
+  { id: 'db-mixed-veg-sabzi', name: 'Mixed vegetable sabzi', source: 'database', servingSize: 100, servingUnit: 'g', calories: 85, protein: 2, carbs: 10, fat: 4 },
 ];
 
 /** Index by id for O(1) lookup when logging. */
